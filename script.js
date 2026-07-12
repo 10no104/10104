@@ -84,6 +84,7 @@ const sourceLink = document.querySelector("#sourceLink");
 const detailYield = document.querySelector("#detailYield");
 const detailUpdated = document.querySelector("#detailUpdated");
 const detailFeedback = document.querySelector("#detailFeedback");
+const deleteRecipeButton = document.querySelector("#deleteRecipeButton");
 const ingredientList = document.querySelector("#ingredientList");
 const stepList = document.querySelector("#stepList");
 const latestFeedbackCard = document.querySelector("#latestFeedbackCard");
@@ -105,6 +106,7 @@ async function loadRecipes() {
   state.selectedId = "";
   recipeStage.classList.remove("show-detail");
   setStatus("불러오는 중", 0);
+  recipeList.innerHTML = '<p class="empty-state">불러오는 중</p>';
 
   if (!current) {
     renderStaticView();
@@ -113,7 +115,7 @@ async function loadRecipes() {
   }
 
   try {
-    const recipes = state.apiUrl ? await loadFromApiWithFallback(current.type) : await loadFromSpreadsheet(current.type);
+    const recipes = await loadFromSpreadsheetWithFallback(current.type);
     state.recipes = normalizeRecipes(recipes);
     setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
   } catch {
@@ -124,11 +126,12 @@ async function loadRecipes() {
   render();
 }
 
-async function loadFromApiWithFallback(recipeType) {
+async function loadFromSpreadsheetWithFallback(recipeType) {
   try {
-    return await loadFromApi(recipeType);
+    return await loadFromSpreadsheet(recipeType);
   } catch {
-    return loadFromSpreadsheet(recipeType);
+    if (!state.apiUrl) throw new Error("LOAD_FAILED");
+    return loadFromApi(recipeType);
   }
 }
 
@@ -145,15 +148,29 @@ async function createRecipe(data) {
   return payload.data;
 }
 
+async function deleteRecipe(recipeId) {
+  if (!state.apiUrl) throw new Error("URL 필요");
+  const payload = await jsonp(buildApiUrl("deleteRecipe", { recipeId }));
+  if (!payload.ok) throw new Error(payload.error?.message || "삭제 실패");
+  return payload.data;
+}
+
 async function loadFromSpreadsheet(recipeType) {
   if (!CONFIG.SPREADSHEET_ID) throw new Error("SPREADSHEET_ID 없음");
 
-  const [recipes, ingredients, steps, feedback] = await Promise.all([
+  const [recipesResult, ingredientsResult, stepsResult, feedbackResult] = await Promise.allSettled([
     readAppSheet(APP_SHEETS.recipes),
     readAppSheet(APP_SHEETS.ingredients),
     readAppSheet(APP_SHEETS.steps),
     readAppSheet(APP_SHEETS.feedback),
   ]);
+
+  if (recipesResult.status === "rejected") throw recipesResult.reason;
+
+  const recipes = recipesResult.value;
+  const ingredients = ingredientsResult.status === "fulfilled" ? ingredientsResult.value : [];
+  const steps = stepsResult.status === "fulfilled" ? stepsResult.value : [];
+  const feedback = feedbackResult.status === "fulfilled" ? feedbackResult.value : [];
 
   return recipes
     .filter((recipe) => String(recipe.isArchived).toLowerCase() !== "true")
@@ -491,6 +508,7 @@ function renderDetail() {
   emptyDetail.hidden = Boolean(recipe);
   recipeDetail.hidden = !recipe;
   latestFeedbackCard.hidden = !recipe?.latestFeedback;
+  deleteRecipeButton.disabled = !recipe;
   if (!recipe) return;
 
   detailType.textContent = recipe.recipeType || "Recipe";
@@ -639,6 +657,7 @@ document.querySelector("#backButton").addEventListener("click", () => {
   recipeStage.classList.remove("show-detail");
 });
 
+deleteRecipeButton.addEventListener("click", handleDeleteRecipe);
 document.querySelector("#refreshButton").addEventListener("click", loadRecipes);
 locateButton.addEventListener("click", showCurrentLocation);
 convertAmount.addEventListener("input", updateConverter);
@@ -658,6 +677,31 @@ function openRecipeForm() {
 
 function closeRecipeForm() {
   recipeModal.hidden = true;
+}
+
+async function handleDeleteRecipe() {
+  const recipe = getSelectedRecipe();
+  if (!recipe) return;
+  if (!confirm(`삭제할까요?\n${recipe.name}`)) return;
+
+  const previousStatus = statusText.textContent;
+  setStatus("삭제 중", state.recipes.length);
+
+  try {
+    await deleteRecipe(recipe.recipeId);
+    state.recipes = state.recipes.filter((item) => item.recipeId !== recipe.recipeId);
+    state.selectedId = "";
+    recipeStage.classList.remove("show-detail");
+    setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
+    render();
+  } catch (error) {
+    setStatus(previousStatus || "오류", state.recipes.length);
+    alert(error.message);
+    if (!state.apiUrl) {
+      apiPanel.hidden = false;
+      apiUrlInput.focus();
+    }
+  }
 }
 
 function collectRecipeForm() {

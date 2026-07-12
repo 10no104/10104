@@ -417,6 +417,12 @@ select:focus {
   font-weight: 900;
 }
 
+.action-grid .danger-button {
+  border-color: #b23b2e;
+  background: #b23b2e;
+  color: white;
+}
+
 .info-card {
   padding: 17px;
 }

@@ -116,6 +116,7 @@ function handleRequest_(request) {
     if (action === "listRecipes") return ok_(listRecipes_(request.type));
     if (action === "getRecipe") return ok_(getRecipe_(request.recipeId));
     if (action === "createRecipe") return ok_(createRecipe_(parseData_(request.data || request)));
+    if (action === "deleteRecipe") return ok_(deleteRecipe_(request.recipeId));
     if (action === "setupSpreadsheet") return ok_(setupSpreadsheet());
     return fail_("UNKNOWN_ACTION", "지원하지 않는 action입니다.");
   } catch (error) {
@@ -185,6 +186,40 @@ function createRecipe_(data) {
     });
 
     return getRecipe_(recipeId);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deleteRecipe_(recipeId) {
+  if (!recipeId) throw new Error("recipeId가 필요합니다.");
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEETS.RECIPES);
+    if (!sheet) throw new Error("App_Recipes 시트를 찾을 수 없습니다.");
+
+    const values = sheet.getDataRange().getValues();
+    if (values.length < 2) throw new Error("레시피를 찾을 수 없습니다.");
+
+    const headers = values[0].map(String);
+    const recipeIdColumn = headers.indexOf("recipeId") + 1;
+    const archivedColumn = headers.indexOf("isArchived") + 1;
+    const updatedAtColumn = headers.indexOf("updatedAt") + 1;
+    if (!recipeIdColumn || !archivedColumn) throw new Error("필수 컬럼을 찾을 수 없습니다.");
+
+    for (let rowIndex = 2; rowIndex <= values.length; rowIndex += 1) {
+      if (String(values[rowIndex - 1][recipeIdColumn - 1]) === String(recipeId)) {
+        sheet.getRange(rowIndex, archivedColumn).setValue("true");
+        if (updatedAtColumn) sheet.getRange(rowIndex, updatedAtColumn).setValue(new Date().toISOString());
+        return { recipeId, isArchived: true };
+      }
+    }
+
+    throw new Error("레시피를 찾을 수 없습니다.");
   } finally {
     lock.releaseLock();
   }
