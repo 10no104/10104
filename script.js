@@ -51,6 +51,7 @@ const state = {
   recipes: [],
   selectedId: "",
   query: "",
+  placeQuery: "",
   tag: "전체",
   sort: "updatedAt",
   apiUrl: apiFromQuery || localStorage.getItem(API_STORAGE_KEY) || CONFIG.APPS_SCRIPT_URL || "",
@@ -91,6 +92,7 @@ const latestFeedbackCard = document.querySelector("#latestFeedbackCard");
 const latestFeedback = document.querySelector("#latestFeedback");
 const placesMap = document.querySelector("#placesMap");
 const mapStatus = document.querySelector("#mapStatus");
+const mapSearchInput = document.querySelector("#mapSearchInput");
 const locateButton = document.querySelector("#locateButton");
 const convertAmount = document.querySelector("#convertAmount");
 const convertFrom = document.querySelector("#convertFrom");
@@ -386,8 +388,13 @@ function normalizePlace(row) {
 function renderPlaces() {
   state.placeLayer.clearLayers();
   const bounds = [];
+  const query = state.placeQuery.trim().toLowerCase();
+  const places = state.places.filter((place) => {
+    if (!query) return true;
+    return [place.name, place.note, place.type].some((value) => String(value || "").toLowerCase().includes(query));
+  });
 
-  state.places.forEach((place) => {
+  places.forEach((place) => {
     const marker = L.marker([place.lat, place.lng], { icon: placeIcon(place.type) });
     marker.bindPopup(`
       <div class="place-popup">
@@ -400,6 +407,7 @@ function renderPlaces() {
     bounds.push([place.lat, place.lng]);
   });
 
+  if (state.places.length) mapStatus.textContent = places.length ? `${places.length}개` : "없음";
   if (bounds.length) state.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
 }
 
@@ -519,7 +527,7 @@ function renderDetail() {
   detailFeedback.textContent = recipe.feedbackCount || 0;
 
   sourceLink.hidden = !recipe.sourceUrl;
-  sourceLink.href = recipe.sourceUrl || "#";
+  sourceLink.href = normalizeUrl(recipe.sourceUrl) || "#";
   sourceLink.textContent = recipe.sourceName || "출처";
 
   renderIngredients(recipe.ingredients || []);
@@ -566,6 +574,12 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;",
   })[char]);
+}
+
+function normalizeUrl(value) {
+  const url = String(value || "").trim();
+  if (!url) return "";
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
 function updateHash() {
@@ -648,6 +662,11 @@ searchInput.addEventListener("input", (event) => {
   render();
 });
 
+mapSearchInput.addEventListener("input", (event) => {
+  state.placeQuery = event.target.value;
+  if (state.map) renderPlaces();
+});
+
 sortSelect.addEventListener("change", (event) => {
   state.sort = event.target.value;
   render();
@@ -696,7 +715,8 @@ async function handleDeleteRecipe() {
     render();
   } catch (error) {
     setStatus(previousStatus || "오류", state.recipes.length);
-    alert(error.message);
+    const message = error.message === "지원하지 않는 action입니다." ? "Apps Script 재배포 필요" : error.message;
+    alert(message);
     if (!state.apiUrl) {
       apiPanel.hidden = false;
       apiUrlInput.focus();
@@ -710,6 +730,7 @@ function collectRecipeForm() {
     recipeType: document.querySelector("#recipeTypeInput").value,
     category: document.querySelector("#recipeCategoryInput").value.trim(),
     description: document.querySelector("#recipeDescriptionInput").value.trim(),
+    sourceUrl: normalizeUrl(document.querySelector("#recipeSourceUrlInput").value),
     baseYield: document.querySelector("#recipeYieldInput").value.trim(),
     yieldUnit: document.querySelector("#recipeYieldUnitInput").value.trim(),
     tags: document.querySelector("#recipeTagsInput").value.split(",").map((tag) => tag.trim()).filter(Boolean),

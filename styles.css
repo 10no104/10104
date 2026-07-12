@@ -470,9 +470,19 @@ li::marker {
   backdrop-filter: blur(12px);
 }
 
+.map-toolbar > div {
+  min-width: 116px;
+}
+
 .map-toolbar h2 {
   margin: 0;
   font-size: 1.15rem;
+}
+
+.map-search {
+  flex: 1 1 auto;
+  min-width: 120px;
+  min-height: 40px;
 }
 
 .map-toolbar button {
@@ -757,6 +767,16 @@ textarea:focus {
   .map-shell,
   .places-map {
     min-height: calc(100vh - var(--nav-height) - 24px);
+  }
+
+  .map-toolbar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .map-search {
+    grid-column: 1 / -1;
+    order: 3;
   }
 
   .tool-grid .info-card + .info-card {
