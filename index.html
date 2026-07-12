@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>레시피 스튜디오</title>
     <meta name="description" content="모바일 중심 레시피 관리 페이지" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -112,13 +113,16 @@
       </section>
 
       <section class="screen" id="mapScreen" aria-label="지도">
-        <div class="map-card">
-          <div>
-            <p class="eyebrow">My Maps</p>
-            <h2>저장한 장소</h2>
+        <div class="map-shell">
+          <div class="map-toolbar">
+            <div>
+              <p class="eyebrow">Places</p>
+              <h2>저장한 장소</h2>
+            </div>
+            <button id="locateButton" type="button">현재 위치</button>
           </div>
-          <iframe id="mapFrame" title="Google My Maps" loading="lazy"></iframe>
-          <a id="mapOpenLink" target="_blank" rel="noreferrer">새 창에서 지도 보기</a>
+          <div id="placesMap" class="places-map" role="application" aria-label="저장한 장소 지도"></div>
+          <p class="map-status" id="mapStatus">장소를 불러오는 중...</p>
         </div>
       </section>
 
@@ -233,6 +237,7 @@
       <button type="button" data-view="tools">계산·정보</button>
     </nav>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module" src="script.js"></script>
   </body>
 </html>

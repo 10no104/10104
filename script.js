@@ -29,7 +29,37 @@ const APP_SHEETS = {
   ingredients: "App_Ingredients",
   steps: "App_Steps",
   feedback: "App_Feedback",
+  referenceData: "App_ReferenceData",
 };
+
+const PLACE_TYPE_ICONS = {
+  restaurant: "🍽️",
+  food: "🍽️",
+  음식점: "🍽️",
+  attraction: "🏞️",
+  sightseeing: "🏞️",
+  관광지: "🏞️",
+  hotel: "🏨",
+  stay: "🏨",
+  숙소: "🏨",
+  transit: "🚉",
+  transport: "🚉",
+  교통: "🚉",
+  other: "📍",
+  기타: "📍",
+};
+
+const SAMPLE_PLACES = [
+  {
+    placeId: "sample-place-1",
+    name: "저장한 음식점",
+    note: "App_ReferenceData에 장소를 넣으면 실제 장소가 표시됩니다.",
+    type: "음식점",
+    lat: 37.5665,
+    lng: 126.978,
+    googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=37.5665,126.978",
+  },
+];
 
 const SAMPLE_RECIPES = [
   {
@@ -86,6 +116,10 @@ const state = {
   tag: "전체",
   sort: "updatedAt",
   apiUrl: apiFromQuery || localStorage.getItem(API_STORAGE_KEY) || CONFIG.APPS_SCRIPT_URL || "",
+  places: [],
+  map: null,
+  placeLayer: null,
+  locationMarker: null,
 };
 
 if (apiFromQuery) {
@@ -117,8 +151,9 @@ const ingredientList = document.querySelector("#ingredientList");
 const stepList = document.querySelector("#stepList");
 const latestFeedbackCard = document.querySelector("#latestFeedbackCard");
 const latestFeedback = document.querySelector("#latestFeedback");
-const mapFrame = document.querySelector("#mapFrame");
-const mapOpenLink = document.querySelector("#mapOpenLink");
+const placesMap = document.querySelector("#placesMap");
+const mapStatus = document.querySelector("#mapStatus");
+const locateButton = document.querySelector("#locateButton");
 const convertAmount = document.querySelector("#convertAmount");
 const convertFrom = document.querySelector("#convertFrom");
 const convertResult = document.querySelector("#convertResult");
@@ -136,6 +171,7 @@ async function loadRecipes() {
 
   if (!current) {
     renderStaticView();
+    if (state.view === "map") initMapView();
     return;
   }
 
@@ -350,6 +386,124 @@ function renderStaticView() {
     state.view === "map" ? "저장한 Google My Maps를 확인합니다." : "단위 계산과 조리 기준 정보를 확인합니다.";
   setStatus(state.view === "map" ? "지도를 표시합니다." : "계산 도구를 사용할 수 있습니다.", 0);
   recipeCount.textContent = "-";
+  if (state.view === "map") initMapView();
+}
+
+async function initMapView() {
+  if (!window.L) {
+    mapStatus.textContent = "지도 라이브러리를 불러오지 못했습니다.";
+    return;
+  }
+
+  if (!state.map) {
+    state.map = L.map(placesMap, { zoomControl: true }).setView([37.5665, 126.978], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
+    }).addTo(state.map);
+    state.placeLayer = L.layerGroup().addTo(state.map);
+  }
+
+  window.setTimeout(() => state.map.invalidateSize(), 50);
+  await loadPlaces();
+}
+
+async function loadPlaces() {
+  mapStatus.textContent = "장소를 불러오는 중...";
+
+  try {
+    const rows = await readAppSheet(APP_SHEETS.referenceData);
+    state.places = rows.filter((row) => String(row.category).toLowerCase() === "place").map(normalizePlace).filter(Boolean);
+    if (!state.places.length) {
+      state.places = SAMPLE_PLACES;
+      mapStatus.textContent = "저장된 장소가 없어 샘플 핀을 표시합니다.";
+    } else {
+      mapStatus.textContent = `${state.places.length}개의 장소를 표시합니다.`;
+    }
+  } catch (error) {
+    state.places = SAMPLE_PLACES;
+    mapStatus.textContent = `장소를 읽지 못해 샘플 핀을 표시합니다. ${error.message}`;
+  }
+
+  renderPlaces();
+}
+
+function normalizePlace(row) {
+  const parsed = safeJson(row.value, {});
+  const lat = Number(parsed.lat ?? parsed.latitude ?? row.lat);
+  const lng = Number(parsed.lng ?? parsed.longitude ?? row.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  return {
+    placeId: row.referenceId || parsed.placeId || `${lat},${lng}`,
+    name: row.name || parsed.name || "저장한 장소",
+    note: row.note || parsed.note || "",
+    type: parsed.type || parsed.category || "기타",
+    lat,
+    lng,
+    googleMapsUrl: parsed.googleMapsUrl || parsed.url || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+  };
+}
+
+function renderPlaces() {
+  state.placeLayer.clearLayers();
+  const bounds = [];
+
+  state.places.forEach((place) => {
+    const marker = L.marker([place.lat, place.lng], { icon: placeIcon(place.type) });
+    marker.bindPopup(`
+      <div class="place-popup">
+        <strong>${escapeHtml(place.name)}</strong>
+        ${place.note ? `<p>${escapeHtml(place.note)}</p>` : ""}
+        <a href="${escapeHtml(place.googleMapsUrl)}" target="_blank" rel="noreferrer">Google Maps 열기</a>
+      </div>
+    `);
+    marker.addTo(state.placeLayer);
+    bounds.push([place.lat, place.lng]);
+  });
+
+  if (bounds.length) state.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+}
+
+function placeIcon(type) {
+  const icon = PLACE_TYPE_ICONS[type] || PLACE_TYPE_ICONS[String(type).toLowerCase()] || PLACE_TYPE_ICONS.other;
+  return L.divIcon({
+    className: "place-marker",
+    html: `<span>${icon}</span>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+    popupAnchor: [0, -18],
+  });
+}
+
+function showCurrentLocation() {
+  if (!navigator.geolocation) {
+    mapStatus.textContent = "이 브라우저에서는 현재 위치를 사용할 수 없습니다.";
+    return;
+  }
+
+  mapStatus.textContent = "현재 위치를 확인하는 중...";
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const latlng = [position.coords.latitude, position.coords.longitude];
+      if (state.locationMarker) state.locationMarker.setLatLng(latlng);
+      else {
+        state.locationMarker = L.circleMarker(latlng, {
+          radius: 8,
+          color: "#1267ff",
+          fillColor: "#2f80ff",
+          fillOpacity: 0.9,
+          weight: 3,
+        }).addTo(state.map);
+      }
+      state.map.setView(latlng, Math.max(state.map.getZoom(), 14));
+      mapStatus.textContent = "현재 위치를 지도에만 표시했습니다.";
+    },
+    () => {
+      mapStatus.textContent = "위치 권한이 거부되어 현재 위치만 표시하지 않습니다.";
+    },
+    { enableHighAccuracy: true, timeout: 9000, maximumAge: 60000 },
+  );
 }
 
 function renderTags() {
@@ -565,11 +719,9 @@ document.querySelector("#backButton").addEventListener("click", () => {
 });
 
 document.querySelector("#refreshButton").addEventListener("click", loadRecipes);
+locateButton.addEventListener("click", showCurrentLocation);
 convertAmount.addEventListener("input", updateConverter);
 convertFrom.addEventListener("change", updateConverter);
-
-mapFrame.src = CONFIG.MAP_EMBED_URL;
-mapOpenLink.href = CONFIG.MAP_EMBED_URL;
 
 initFromHash();
 updateConverter();

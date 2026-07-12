@@ -264,7 +264,7 @@ select:focus {
 
 .recipe-list,
 .detail-panel,
-.map-card,
+.map-shell,
 .info-card {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -453,26 +453,102 @@ li::marker {
   font-weight: 900;
 }
 
-.map-card {
+.map-shell {
+  position: relative;
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  min-height: calc(100vh - var(--nav-height) - 96px);
+  overflow: hidden;
 }
 
-.map-card h2 {
-  margin: 0;
-}
-
-.map-card iframe {
-  width: 100%;
-  min-height: 68vh;
-  border: 0;
+.map-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  left: 12px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(221, 201, 174, 0.86);
   border-radius: 8px;
+  background: rgba(255, 250, 241, 0.94);
+  padding: 10px 12px;
+  backdrop-filter: blur(12px);
+}
+
+.map-toolbar h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.map-toolbar button {
+  min-height: 40px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  padding: 0 12px;
+  font-weight: 900;
+}
+
+.places-map {
+  width: 100%;
+  min-height: calc(100vh - var(--nav-height) - 96px);
   background: var(--paper);
 }
 
-.map-card a {
-  color: var(--accent-dark);
+.map-status {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  z-index: 500;
+  margin: 0;
+  border: 1px solid rgba(221, 201, 174, 0.86);
+  border-radius: 8px;
+  background: rgba(255, 250, 241, 0.94);
+  color: var(--muted);
+  padding: 9px 11px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  backdrop-filter: blur(12px);
+}
+
+.place-marker {
+  display: grid;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: 0 8px 22px rgba(33, 27, 22, 0.22);
+  font-size: 1.25rem;
+}
+
+.place-popup {
+  min-width: 180px;
+}
+
+.place-popup strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.place-popup p {
+  margin: 7px 0 10px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.place-popup a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  padding: 0 10px;
+  text-decoration: none;
   font-weight: 900;
 }
 
@@ -685,8 +761,9 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
-  .map-card iframe {
-    min-height: 72vh;
+  .map-shell,
+  .places-map {
+    min-height: calc(100vh - var(--nav-height) - 24px);
   }
 
   .tool-grid .info-card + .info-card {
