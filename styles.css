@@ -1,17 +1,17 @@
 :root {
   color-scheme: light;
-  --bg: #f5ead7;
-  --paper: #fffaf1;
-  --paper-strong: #fff1d8;
-  --ink: #211b16;
-  --muted: #756a5f;
-  --line: #ddc9ae;
-  --accent: #2e7a65;
-  --accent-dark: #1f594c;
-  --accent-soft: #e5f2ec;
-  --warm: #c95338;
-  --gold: #dea83e;
-  --shadow: 0 22px 60px rgba(65, 44, 23, 0.15);
+  --bg: #e8f3f7;
+  --paper: #fbfffb;
+  --paper-strong: #eefcf4;
+  --ink: #131923;
+  --muted: #66768a;
+  --line: #b8d6dc;
+  --accent: #67d7bb;
+  --accent-dark: #17384a;
+  --accent-soft: #dff8ef;
+  --warm: #f2a8ba;
+  --gold: #f6e46b;
+  --shadow: 0 20px 44px rgba(17, 33, 48, 0.15);
   --nav-height: 78px;
 }
 
@@ -22,8 +22,9 @@
 html {
   min-height: 100%;
   background:
-    radial-gradient(circle at 0 0, rgba(222, 168, 62, 0.28), transparent 28rem),
-    linear-gradient(135deg, #fbefd9 0%, #edf5f0 100%);
+    linear-gradient(135deg, rgba(18, 24, 36, 0.04) 25%, transparent 25%) 0 0 / 34px 34px,
+    linear-gradient(225deg, rgba(103, 215, 187, 0.22), transparent 26rem),
+    linear-gradient(135deg, #f8fbff 0%, #e6f7f1 58%, #f9edf3 100%);
 }
 
 body {
@@ -52,30 +53,55 @@ button:disabled {
   width: min(1120px, 100%);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 18px 18px calc(var(--nav-height) + 26px);
+  padding: 16px 16px calc(var(--nav-height) + 24px);
 }
 
 .app-header {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 18px;
   align-items: end;
-  min-height: 196px;
-  border: 1px solid rgba(255, 255, 255, 0.48);
+  min-height: 174px;
+  border: 1px solid rgba(246, 228, 107, 0.35);
   border-radius: 8px;
   padding: 24px;
   background:
-    linear-gradient(135deg, rgba(255, 250, 241, 0.84), rgba(231, 243, 237, 0.84)),
-    repeating-linear-gradient(90deg, rgba(46, 122, 101, 0.08) 0 1px, transparent 1px 32px);
+    linear-gradient(110deg, rgba(15, 21, 33, 0.98), rgba(24, 50, 62, 0.96) 62%, rgba(104, 214, 187, 0.58)),
+    repeating-linear-gradient(90deg, rgba(246, 228, 107, 0.18) 0 1px, transparent 1px 34px);
   box-shadow: var(--shadow);
+}
+
+.app-header::before,
+.app-header::after {
+  position: absolute;
+  top: 18px;
+  width: 92px;
+  height: 92px;
+  border: 2px solid rgba(246, 228, 107, 0.5);
+  border-right: 0;
+  border-bottom: 0;
+  content: "";
+  opacity: 0.55;
+}
+
+.app-header::before {
+  right: 118px;
+  transform: rotate(45deg);
+}
+
+.app-header::after {
+  right: 38px;
+  transform: rotate(45deg);
 }
 
 .eyebrow {
   margin: 0 0 8px;
-  color: var(--warm);
+  color: var(--gold);
   font-size: 0.74rem;
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -88,8 +114,10 @@ p {
 
 h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 10vw, 5.8rem);
+  color: white;
+  font-size: clamp(2.5rem, 9vw, 5.2rem);
   line-height: 0.9;
+  text-shadow: 0 0 22px rgba(246, 228, 107, 0.28);
 }
 
 .icon-button {
@@ -97,10 +125,10 @@ h1 {
   place-items: center;
   width: 48px;
   height: 48px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(246, 228, 107, 0.45);
   border-radius: 8px;
-  background: var(--paper);
-  color: var(--accent-dark);
+  background: rgba(251, 255, 251, 0.13);
+  color: var(--gold);
   font-size: 1.35rem;
   font-weight: 900;
 }
@@ -116,16 +144,16 @@ h1 {
   gap: 12px;
   align-items: center;
   margin: 14px 0;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(103, 215, 187, 0.34);
   border-radius: 8px;
-  background: rgba(255, 250, 241, 0.9);
-  padding: 12px 14px;
+  background: rgba(251, 255, 251, 0.82);
+  padding: 10px 13px;
 }
 
 .status-strip strong {
   min-width: 42px;
   color: var(--accent-dark);
-  font-size: 1.6rem;
+  font-size: 1.45rem;
   line-height: 1;
 }
 
@@ -163,9 +191,9 @@ input,
 select {
   width: 100%;
   min-height: 48px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(77, 129, 148, 0.28);
   border-radius: 8px;
-  background: var(--paper);
+  background: rgba(251, 255, 251, 0.92);
   color: var(--ink);
   outline: none;
   padding: 0 13px;
@@ -174,7 +202,7 @@ select {
 input:focus,
 select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(46, 122, 101, 0.15);
+  box-shadow: 0 0 0 3px rgba(103, 215, 187, 0.2), 0 0 0 1px rgba(246, 228, 107, 0.28) inset;
 }
 
 .tag-row {
@@ -186,8 +214,8 @@ select:focus {
 
 .tag-row button {
   flex: 0 0 auto;
-  min-height: 38px;
-  border: 1px solid var(--line);
+  min-height: 34px;
+  border: 1px solid rgba(77, 129, 148, 0.28);
   border-radius: 999px;
   background: var(--paper);
   color: var(--ink);
@@ -196,14 +224,14 @@ select:focus {
 }
 
 .tag-row button.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: white;
+  border-color: var(--accent-dark);
+  background: var(--accent-dark);
+  color: var(--gold);
 }
 
 .recipe-stage {
   display: grid;
-  grid-template-columns: minmax(270px, 390px) minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
@@ -214,37 +242,41 @@ select:focus {
 .info-card {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 250, 241, 0.92);
+  background: rgba(251, 255, 251, 0.88);
   box-shadow: var(--shadow);
 }
 
 .recipe-list {
   display: grid;
   max-height: calc(100vh - 350px);
-  min-height: 340px;
+  min-height: 300px;
   overflow: auto;
 }
 
 .recipe-card {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  align-items: center;
   width: 100%;
-  min-height: 78px;
+  min-height: 46px;
   border: 0;
   border-bottom: 1px solid var(--line);
   background: transparent;
   color: var(--ink);
-  padding: 13px 15px;
+  padding: 9px 13px;
   text-align: left;
 }
 
 .recipe-card.active,
 .recipe-card:hover {
-  background: var(--accent-soft);
+  background: linear-gradient(90deg, rgba(246, 228, 107, 0.28), rgba(103, 215, 187, 0.22));
 }
 
 .recipe-card strong {
-  font-size: 1.05rem;
+  overflow: hidden;
+  font-size: 0.96rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .recipe-card span {
@@ -254,7 +286,7 @@ select:focus {
 
 .detail-panel {
   min-height: 540px;
-  padding: 16px;
+  padding: 14px;
 }
 
 .back-button {
@@ -276,8 +308,8 @@ select:focus {
   border: 1px dashed var(--line);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(255, 241, 216, 0.78), rgba(229, 242, 236, 0.78)),
-    repeating-linear-gradient(45deg, transparent 0 18px, rgba(46, 122, 101, 0.06) 18px 19px);
+    linear-gradient(135deg, rgba(246, 228, 107, 0.14), rgba(103, 215, 187, 0.18)),
+    repeating-linear-gradient(45deg, transparent 0 16px, rgba(23, 56, 74, 0.05) 16px 17px);
   padding: 24px;
 }
 
@@ -306,8 +338,8 @@ select:focus {
 .detail-hero {
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(46, 122, 101, 0.96), rgba(31, 89, 76, 0.96)),
-    linear-gradient(45deg, transparent 0 48%, rgba(255, 255, 255, 0.16) 48% 52%, transparent 52%);
+    linear-gradient(135deg, rgba(15, 21, 33, 0.98), rgba(23, 56, 74, 0.96)),
+    linear-gradient(45deg, transparent 0 48%, rgba(246, 228, 107, 0.2) 48% 52%, transparent 52%);
   color: white;
   padding: 22px;
 }
@@ -322,9 +354,9 @@ select:focus {
   align-items: center;
   min-height: 38px;
   margin-top: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(246, 228, 107, 0.54);
   border-radius: 8px;
-  color: white;
+  color: var(--gold);
   padding: 0 12px;
   text-decoration: none;
   font-weight: 850;
@@ -343,9 +375,9 @@ select:focus {
 }
 
 .meta-grid div {
-  border: 1px solid var(--line);
+  border: 1px solid rgba(77, 129, 148, 0.25);
   border-radius: 8px;
-  background: var(--paper);
+  background: rgba(251, 255, 251, 0.78);
   padding: 13px;
 }
 
@@ -369,7 +401,7 @@ select:focus {
 
 .action-grid button {
   min-height: 42px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(77, 129, 148, 0.25);
   border-radius: 8px;
   background: var(--paper);
   color: var(--ink);
@@ -377,8 +409,8 @@ select:focus {
 }
 
 .action-grid .danger-button {
-  border-color: #b23b2e;
-  background: #b23b2e;
+  border-color: #da6f86;
+  background: #da6f86;
   color: white;
 }
 
@@ -401,7 +433,7 @@ ol {
 }
 
 li::marker {
-  color: var(--accent);
+  color: var(--warm);
   font-weight: 900;
 }
 
@@ -422,9 +454,9 @@ li::marker {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(221, 201, 174, 0.86);
+  border: 1px solid rgba(246, 228, 107, 0.34);
   border-radius: 8px;
-  background: rgba(255, 250, 241, 0.94);
+  background: rgba(15, 21, 33, 0.88);
   padding: 10px 12px;
   backdrop-filter: blur(12px);
 }
@@ -435,6 +467,7 @@ li::marker {
 
 .map-toolbar h2 {
   margin: 0;
+  color: white;
   font-size: 1.15rem;
 }
 
@@ -446,10 +479,10 @@ li::marker {
 
 .map-toolbar button {
   min-height: 40px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--gold);
   border-radius: 8px;
-  background: var(--accent);
-  color: white;
+  background: var(--gold);
+  color: var(--accent-dark);
   padding: 0 12px;
   font-weight: 900;
 }
@@ -467,10 +500,10 @@ li::marker {
   left: 12px;
   z-index: 500;
   margin: 0;
-  border: 1px solid rgba(221, 201, 174, 0.86);
+  border: 1px solid rgba(246, 228, 107, 0.34);
   border-radius: 8px;
-  background: rgba(255, 250, 241, 0.94);
-  color: var(--muted);
+  background: rgba(15, 21, 33, 0.84);
+  color: rgba(255, 255, 255, 0.78);
   padding: 9px 11px;
   font-size: 0.86rem;
   line-height: 1.45;
@@ -480,10 +513,10 @@ li::marker {
 .place-marker {
   display: grid;
   place-items: center;
-  border: 2px solid white;
+  border: 2px solid var(--gold);
   border-radius: 999px;
-  background: var(--paper);
-  box-shadow: 0 8px 22px rgba(33, 27, 22, 0.22);
+  background: #111923;
+  box-shadow: 0 8px 22px rgba(17, 25, 35, 0.28), 0 0 0 3px rgba(103, 215, 187, 0.22);
   font-size: 1.25rem;
 }
 
@@ -507,8 +540,8 @@ li::marker {
   align-items: center;
   min-height: 34px;
   border-radius: 8px;
-  background: var(--accent);
-  color: white;
+  background: var(--accent-dark);
+  color: var(--gold);
   padding: 0 10px;
   text-decoration: none;
   font-weight: 900;
@@ -543,8 +576,8 @@ li::marker {
   min-height: 48px;
   border: 0;
   border-radius: 999px;
-  background: var(--accent);
-  color: white;
+  background: var(--accent-dark);
+  color: var(--gold);
   padding: 0 18px;
   box-shadow: var(--shadow);
   font-weight: 900;
@@ -572,7 +605,7 @@ li::marker {
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--paper);
+  background: rgba(251, 255, 251, 0.98);
   box-shadow: var(--shadow);
   padding: 18px;
 }
@@ -597,7 +630,7 @@ li::marker {
 
 textarea {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(77, 129, 148, 0.28);
   border-radius: 8px;
   background: var(--paper);
   color: var(--ink);
@@ -631,9 +664,9 @@ textarea:focus {
 }
 
 .form-actions button[type="submit"] {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: white;
+  border-color: var(--accent-dark);
+  background: var(--accent-dark);
+  color: var(--gold);
 }
 
 .bottom-nav {
@@ -645,8 +678,8 @@ textarea:focus {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   min-height: calc(var(--nav-height) + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line);
-  background: rgba(255, 250, 241, 0.96);
+  border-top: 1px solid rgba(246, 228, 107, 0.28);
+  background: rgba(15, 21, 33, 0.94);
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   backdrop-filter: blur(14px);
 }
@@ -695,14 +728,14 @@ body.map-view .leaflet-top.leaflet-left {
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.68);
   font-size: 0.82rem;
   font-weight: 900;
 }
 
 .bottom-nav button.active {
-  background: var(--accent-soft);
-  color: var(--accent-dark);
+  background: rgba(103, 215, 187, 0.18);
+  color: var(--gold);
 }
 
 .empty-state,

@@ -490,7 +490,7 @@ function renderList() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `recipe-card${recipe.recipeId === state.selectedId ? " active" : ""}`;
-    button.innerHTML = `<strong>${escapeHtml(recipe.name)}</strong><span>${escapeHtml(recipe.category || recipe.recipeType)} · ${escapeHtml(formatYield(recipe))} · ${escapeHtml(recipe.updatedAt || "-")}</span>`;
+    button.innerHTML = `<strong>${escapeHtml(recipe.name)}</strong>`;
     button.addEventListener("click", () => {
       state.selectedId = recipe.recipeId;
       recipeStage.classList.add("show-detail");
