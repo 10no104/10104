@@ -1,126 +1,195 @@
-const storageKey = "recipe-library-v1";
+const sheetId = "1Le4nNsN2k91YX1mQQpqT5Gbt499u3AFSlKfHRo2gUl8";
+const sheetGid = "0";
+const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${sheetGid}&headers=0`;
 
-const starterRecipes = [
+const fallbackRecipes = [
   {
-    id: "kimchi-rice",
+    id: "sample-kimchi-rice",
     title: "김치볶음밥",
-    category: "한식",
+    category: "샘플",
     time: "15분",
     servings: "1인분",
-    note: "냉장고 재료로 빠르게 만드는 든든한 한 끼.",
-    ingredients: ["밥 1공기", "잘 익은 김치 1/2컵", "대파 한 줌", "간장 1작은술", "참기름 약간"],
-    steps: ["대파를 먼저 볶아 향을 낸다.", "김치를 넣고 물기가 줄 때까지 볶는다.", "밥과 간장을 넣고 고루 섞는다.", "불을 끄고 참기름을 둘러 마무리한다."],
-  },
-  {
-    id: "tomato-egg",
-    title: "토마토 달걀볶음",
-    category: "간식",
-    time: "12분",
-    servings: "2인분",
-    note: "가볍게 먹기 좋은 부드러운 반찬 겸 브런치.",
-    ingredients: ["토마토 2개", "달걀 3개", "소금 한 꼬집", "설탕 1작은술", "식용유"],
-    steps: ["달걀에 소금을 넣고 풀어 둔다.", "팬에 달걀을 부드럽게 익힌 뒤 덜어 둔다.", "토마토와 설탕을 넣고 살짝 볶는다.", "달걀을 다시 넣고 크게 섞어 낸다."],
-  },
-  {
-    id: "cream-pasta",
-    title: "버섯 크림파스타",
-    category: "양식",
-    time: "25분",
-    servings: "2인분",
-    note: "버섯 향이 진한 주말용 파스타.",
-    ingredients: ["파스타면 180g", "양송이버섯 6개", "마늘 3쪽", "생크림 1컵", "파르메산 치즈"],
-    steps: ["면을 봉지 표기보다 1분 짧게 삶는다.", "마늘과 버섯을 노릇하게 볶는다.", "생크림과 면수를 넣어 농도를 맞춘다.", "면과 치즈를 넣고 소스가 배도록 섞는다."],
+    note: "시트가 공개되어 있지 않을 때 보이는 예시입니다.",
+    ingredients: ["밥 1공기", "김치 1/2컵", "대파", "간장", "참기름"],
+    steps: ["대파를 볶아 향을 냅니다.", "김치를 넣고 볶습니다.", "밥과 간장을 넣고 섞습니다.", "참기름으로 마무리합니다."],
   },
 ];
 
 const state = {
-  recipes: loadRecipes(),
+  recipes: [],
   selectedId: "",
-  filter: "all",
   query: "",
-  checks: {},
-  isCreating: false,
 };
 
+const mobileStage = document.querySelector("#mobileStage");
 const recipeList = document.querySelector("#recipeList");
 const searchInput = document.querySelector("#searchInput");
-const selectedCategory = document.querySelector("#selectedCategory");
-const selectedTitle = document.querySelector("#selectedTitle");
-const selectedNote = document.querySelector("#selectedNote");
-const selectedTime = document.querySelector("#selectedTime");
-const selectedServings = document.querySelector("#selectedServings");
-const ingredientChecklist = document.querySelector("#ingredientChecklist");
-const stepChecklist = document.querySelector("#stepChecklist");
-const recipeForm = document.querySelector("#recipeForm");
+const statusText = document.querySelector("#statusText");
+const detailCategory = document.querySelector("#detailCategory");
+const detailTitle = document.querySelector("#detailTitle");
+const detailNote = document.querySelector("#detailNote");
+const detailTime = document.querySelector("#detailTime");
+const detailServings = document.querySelector("#detailServings");
+const ingredientList = document.querySelector("#ingredientList");
+const stepList = document.querySelector("#stepList");
 
-function loadRecipes() {
-  const saved = localStorage.getItem(storageKey);
-  if (!saved) return starterRecipes;
+function parseSheetResponse(text) {
+  const jsonText = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+  const data = JSON.parse(jsonText);
+  const rows = data.table.rows.map((row) => row.c.map((cell) => String(cell?.f || cell?.v || "").trim()));
+  return parseRecipeBlocks(rows);
+}
+
+function parseRecipeBlocks(rows) {
+  const recipes = [];
+  const maxColumns = Math.max(...rows.map((row) => row.length));
+
+  for (let column = 0; column < maxColumns - 1; column += 3) {
+    const blocks = parseColumnPair(rows, column, column + 1);
+    recipes.push(...blocks);
+  }
+
+  return recipes.map((recipe, index) => ({
+    ...recipe,
+    id: `sheet-recipe-${index}`,
+  }));
+}
+
+function parseColumnPair(rows, nameColumn, valueColumn) {
+  const recipes = [];
+  let pendingMeta = [];
+  let current = null;
+
+  rows.forEach((row) => {
+    const name = cleanCell(row[nameColumn]);
+    const value = cleanCell(row[valueColumn]);
+    const looksLikeTitle = isLikelyTitle(name) && !value && hasDetailRowsBelow(rows, nameColumn, valueColumn, row);
+
+    if (looksLikeTitle) {
+      if (current) recipes.push(finalizeRecipe(current));
+      current = {
+        title: name,
+        category: "Sheet",
+        meta: pendingMeta,
+        ingredients: [],
+        steps: [],
+      };
+      pendingMeta = [];
+      return;
+    }
+
+    if (!name && !value) return;
+
+    const line = formatPair(name, value);
+    if (!line) return;
+
+    if (!current) {
+      pendingMeta.push(line);
+      return;
+    }
+
+    if (isProcessLine(name)) current.steps.push(line);
+    else current.ingredients.push(line);
+  });
+
+  if (current) recipes.push(finalizeRecipe(current));
+  return recipes.filter((recipe) => recipe.title && recipe.ingredients.length + recipe.steps.length > 0);
+}
+
+function hasDetailRowsBelow(rows, nameColumn, valueColumn, currentRow) {
+  const start = rows.indexOf(currentRow) + 1;
+  const nextRows = rows.slice(start, start + 16);
+  return nextRows.filter((row) => cleanCell(row[nameColumn]) && cleanCell(row[valueColumn])).length >= 2;
+}
+
+function finalizeRecipe(recipe) {
+  const infoLines = [...recipe.meta, ...recipe.steps];
+  const time = findTime(infoLines) || findTime(recipe.ingredients) || "-";
+
+  return {
+    title: recipe.title,
+    category: recipe.category,
+    time,
+    servings: "-",
+    note: infoLines.join(" · "),
+    ingredients: recipe.ingredients,
+    steps: infoLines.length ? infoLines : ["시트에 별도 과정이 없으면 재료/정보 목록을 확인하세요."],
+  };
+}
+
+function cleanCell(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function formatPair(name, value) {
+  if (name && value) return `${name}: ${value}`;
+  return name || value;
+}
+
+function isLikelyTitle(value) {
+  return Boolean(value) && !/[=:]/.test(value) && !/^\d/.test(value) && !/(ml|gram|g|cup|tbsp|tsp|°f|℃)$/i.test(value);
+}
+
+function isProcessLine(value) {
+  return /temp|fridge|second|seccond|stretch|fold|bake|oven|°f|℃|hours?|mins?|분|시간/i.test(value || "");
+}
+
+function findTime(lines) {
+  const match = lines.find((line) => /(\d|half|one).*(min|hour|분|시간)|\d+\s*-\s*\d+/.test(line.toLowerCase()));
+  return match ? match.replace(/^.*?:\s*/, "") : "";
+}
+
+async function loadRecipes() {
+  statusText.textContent = "시트에서 레시피를 불러오는 중...";
 
   try {
-    const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) && parsed.length ? parsed : starterRecipes;
+    const response = await fetch(`${sheetUrl}&cachebust=${Date.now()}`);
+    if (!response.ok) throw new Error("sheet request failed");
+
+    const recipes = parseSheetResponse(await response.text());
+    if (!recipes.length) throw new Error("no recipes");
+
+    state.recipes = recipes;
+    state.selectedId = recipes[0].id;
+    statusText.textContent = `${recipes.length}개의 레시피를 불러왔습니다.`;
   } catch {
-    return starterRecipes;
+    state.recipes = fallbackRecipes;
+    state.selectedId = fallbackRecipes[0].id;
+    statusText.textContent = "시트를 읽지 못해 샘플을 표시합니다. 시트 공유 권한을 확인해주세요.";
   }
-}
 
-function saveRecipes() {
-  localStorage.setItem(storageKey, JSON.stringify(state.recipes));
-}
-
-function linesToList(value) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function makeId() {
-  if (window.crypto?.randomUUID) return crypto.randomUUID();
-  return `recipe-${Date.now()}-${Math.round(Math.random() * 10000)}`;
+  render();
 }
 
 function getVisibleRecipes() {
   const query = state.query.trim().toLowerCase();
-  return state.recipes.filter((recipe) => {
-    const matchesFilter = state.filter === "all" || recipe.category === state.filter;
-    const haystack = [recipe.title, recipe.category, recipe.note, ...recipe.ingredients, ...recipe.steps]
-      .join(" ")
-      .toLowerCase();
-    return matchesFilter && haystack.includes(query);
-  });
+  if (!query) return state.recipes;
+  return state.recipes.filter((recipe) => recipe.title.toLowerCase().includes(query));
 }
 
 function getSelectedRecipe() {
   return state.recipes.find((recipe) => recipe.id === state.selectedId) || state.recipes[0];
 }
 
-function selectRecipe(id) {
-  state.selectedId = id;
-  state.isCreating = false;
-  render();
-}
-
 function renderList() {
-  const visibleRecipes = getVisibleRecipes();
+  const recipes = getVisibleRecipes();
   recipeList.innerHTML = "";
 
-  if (!visibleRecipes.length) {
-    recipeList.innerHTML = '<div class="empty-state">검색 조건에 맞는 레시피가 없어요. 새 레시피를 추가해 보세요.</div>';
+  if (!recipes.length) {
+    recipeList.innerHTML = '<p class="empty-state">검색 결과가 없습니다.</p>';
     return;
   }
 
-  if (!visibleRecipes.some((recipe) => recipe.id === state.selectedId)) {
-    state.selectedId = visibleRecipes[0].id;
-  }
-
-  visibleRecipes.forEach((recipe) => {
+  recipes.forEach((recipe) => {
     const button = document.createElement("button");
+    button.className = `recipe-title-button${recipe.id === state.selectedId ? " active" : ""}`;
     button.type = "button";
-    button.className = `recipe-card${recipe.id === state.selectedId ? " active" : ""}`;
-    button.innerHTML = `<strong>${recipe.title}</strong><span>${recipe.category} · ${recipe.time} · ${recipe.servings}</span>`;
-    button.addEventListener("click", () => selectRecipe(recipe.id));
+    button.textContent = recipe.title;
+    button.addEventListener("click", () => {
+      state.selectedId = recipe.id;
+      mobileStage.classList.add("show-detail");
+      render();
+    });
     recipeList.append(button);
   });
 }
@@ -129,133 +198,41 @@ function renderDetail() {
   const recipe = getSelectedRecipe();
   if (!recipe) return;
 
-  selectedCategory.textContent = recipe.category;
-  selectedTitle.textContent = recipe.title;
-  selectedNote.textContent = recipe.note;
-  selectedTime.textContent = recipe.time;
-  selectedServings.textContent = recipe.servings;
-
-  renderChecklist(ingredientChecklist, recipe, "ingredients");
-  renderChecklist(stepChecklist, recipe, "steps");
+  detailCategory.textContent = recipe.category;
+  detailTitle.textContent = recipe.title;
+  detailNote.textContent = recipe.note || "";
+  detailTime.textContent = recipe.time;
+  detailServings.textContent = recipe.servings;
+  renderItems(ingredientList, recipe.ingredients, "등록된 재료가 없습니다.");
+  renderItems(stepList, recipe.steps, "등록된 조리 순서가 없습니다.");
 }
 
-function renderChecklist(container, recipe, type) {
-  const values = recipe[type];
-  const checkGroup = `${recipe.id}:${type}`;
-  state.checks[checkGroup] ||= [];
+function renderItems(container, items, emptyText) {
   container.innerHTML = "";
+  const visibleItems = items.length ? items : [emptyText];
 
-  values.forEach((value, index) => {
-    const id = `${checkGroup}:${index}`;
-    const label = document.createElement("label");
-    label.className = "check-item";
-    label.innerHTML = `<input type="checkbox" ${state.checks[checkGroup].includes(index) ? "checked" : ""} /><span>${type === "steps" ? `${index + 1}. ` : ""}${value}</span>`;
-    label.querySelector("input").addEventListener("change", (event) => {
-      const checked = new Set(state.checks[checkGroup]);
-      if (event.target.checked) checked.add(index);
-      else checked.delete(index);
-      state.checks[checkGroup] = [...checked];
-    });
-    label.querySelector("input").id = id;
-    container.append(label);
+  visibleItems.forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    container.append(li);
   });
-}
-
-function renderForm() {
-  const recipe = getSelectedRecipe();
-  document.querySelector("#formTitle").textContent = state.isCreating ? "새 레시피 추가" : "레시피 수정";
-
-  if (state.isCreating || !recipe) {
-    recipeForm.reset();
-    document.querySelector("#categoryInput").value = "한식";
-    return;
-  }
-
-  document.querySelector("#titleInput").value = recipe.title;
-  document.querySelector("#categoryInput").value = recipe.category;
-  document.querySelector("#timeInput").value = recipe.time;
-  document.querySelector("#servingsInput").value = recipe.servings;
-  document.querySelector("#noteInput").value = recipe.note;
-  document.querySelector("#ingredientsInput").value = recipe.ingredients.join("\n");
-  document.querySelector("#stepsInput").value = recipe.steps.join("\n");
 }
 
 function render() {
   renderList();
   renderDetail();
-  renderForm();
 }
-
-document.querySelectorAll(".chip").forEach((chip) => {
-  chip.addEventListener("click", () => {
-    document.querySelectorAll(".chip").forEach((item) => item.classList.remove("active"));
-    chip.classList.add("active");
-    state.filter = chip.dataset.filter;
-    render();
-  });
-});
-
-document.querySelectorAll(".tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
-    tab.classList.add("active");
-    document.querySelector(`#${tab.dataset.tab}Panel`).classList.add("active");
-  });
-});
 
 searchInput.addEventListener("input", (event) => {
   state.query = event.target.value;
-  render();
+  mobileStage.classList.remove("show-detail");
+  renderList();
 });
 
-document.querySelector("#resetChecks").addEventListener("click", () => {
-  const recipe = getSelectedRecipe();
-  if (!recipe) return;
-  delete state.checks[`${recipe.id}:ingredients`];
-  delete state.checks[`${recipe.id}:steps`];
-  renderDetail();
+document.querySelector("#backButton").addEventListener("click", () => {
+  mobileStage.classList.remove("show-detail");
 });
 
-recipeForm.addEventListener("submit", (event) => {
-  event.preventDefault();
+document.querySelector("#refreshButton").addEventListener("click", loadRecipes);
 
-  const activeRecipe = getSelectedRecipe();
-  const formRecipe = {
-    id: state.isCreating ? makeId() : activeRecipe?.id || makeId(),
-    title: document.querySelector("#titleInput").value.trim(),
-    category: document.querySelector("#categoryInput").value,
-    time: document.querySelector("#timeInput").value.trim(),
-    servings: document.querySelector("#servingsInput").value.trim(),
-    note: document.querySelector("#noteInput").value.trim(),
-    ingredients: linesToList(document.querySelector("#ingredientsInput").value),
-    steps: linesToList(document.querySelector("#stepsInput").value),
-  };
-
-  const existingIndex = state.recipes.findIndex((recipe) => recipe.id === formRecipe.id);
-  if (existingIndex >= 0) state.recipes[existingIndex] = formRecipe;
-  else state.recipes.unshift(formRecipe);
-
-  state.selectedId = formRecipe.id;
-  state.isCreating = false;
-  saveRecipes();
-  render();
-});
-
-document.querySelector("#newRecipe").addEventListener("click", () => {
-  state.isCreating = true;
-  renderForm();
-  document.querySelector("#titleInput").focus();
-});
-
-document.querySelector("#deleteRecipe").addEventListener("click", () => {
-  if (state.recipes.length <= 1) return;
-
-  state.recipes = state.recipes.filter((recipe) => recipe.id !== state.selectedId);
-  state.selectedId = state.recipes[0]?.id || "";
-  saveRecipes();
-  render();
-});
-
-state.selectedId = state.recipes[0]?.id || "";
-render();
+loadRecipes();
