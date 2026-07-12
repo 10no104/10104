@@ -1,6 +1,7 @@
 const sheetId = "1Le4nNsN2k91YX1mQQpqT5Gbt499u3AFSlKfHRo2gUl8";
 const sheetGid = "0";
-const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${sheetGid}&headers=0`;
+const jsonpCallbackName = "__recipeSheetLoaded";
+const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?gid=${sheetGid}&headers=0&tqx=out:json;responseHandler:${jsonpCallbackName}`;
 
 const fallbackRecipes = [
   {
@@ -9,7 +10,7 @@ const fallbackRecipes = [
     category: "샘플",
     time: "15분",
     servings: "1인분",
-    note: "시트가 공개되어 있지 않을 때 보이는 예시입니다.",
+    note: "시트를 읽지 못했을 때 보이는 예시입니다.",
     ingredients: ["밥 1공기", "김치 1/2컵", "대파", "간장", "참기름"],
     steps: ["대파를 볶아 향을 냅니다.", "김치를 넣고 볶습니다.", "밥과 간장을 넣고 섞습니다.", "참기름으로 마무리합니다."],
   },
@@ -19,12 +20,17 @@ const state = {
   recipes: [],
   selectedId: "",
   query: "",
+  loadingScript: null,
+  timeoutId: null,
 };
 
-const mobileStage = document.querySelector("#mobileStage");
+const recipeStage = document.querySelector("#recipeStage");
 const recipeList = document.querySelector("#recipeList");
 const searchInput = document.querySelector("#searchInput");
 const statusText = document.querySelector("#statusText");
+const recipeCount = document.querySelector("#recipeCount");
+const emptyDetail = document.querySelector("#emptyDetail");
+const recipeDetail = document.querySelector("#recipeDetail");
 const detailCategory = document.querySelector("#detailCategory");
 const detailTitle = document.querySelector("#detailTitle");
 const detailNote = document.querySelector("#detailNote");
@@ -33,9 +39,55 @@ const detailServings = document.querySelector("#detailServings");
 const ingredientList = document.querySelector("#ingredientList");
 const stepList = document.querySelector("#stepList");
 
-function parseSheetResponse(text) {
-  const jsonText = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
-  const data = JSON.parse(jsonText);
+function loadRecipes() {
+  clearSheetRequest();
+  setStatus("시트에서 레시피를 불러오는 중...", 0);
+
+  window[jsonpCallbackName] = (data) => {
+    clearTimeout(state.timeoutId);
+    try {
+      const recipes = parseSheetData(data);
+      if (!recipes.length) throw new Error("no recipes");
+
+      state.recipes = recipes;
+      state.selectedId = "";
+      recipeStage.classList.remove("show-detail");
+      setStatus(`${recipes.length}개의 레시피를 불러왔습니다.`, recipes.length);
+      render();
+    } catch {
+      showFallback();
+    } finally {
+      clearSheetRequest();
+    }
+  };
+
+  state.timeoutId = window.setTimeout(showFallback, 9000);
+
+  const script = document.createElement("script");
+  script.src = `${sheetUrl}&cachebust=${Date.now()}`;
+  script.async = true;
+  script.onerror = showFallback;
+  document.head.append(script);
+  state.loadingScript = script;
+}
+
+function clearSheetRequest() {
+  if (state.loadingScript) state.loadingScript.remove();
+  if (state.timeoutId) clearTimeout(state.timeoutId);
+  state.loadingScript = null;
+  state.timeoutId = null;
+}
+
+function showFallback() {
+  clearSheetRequest();
+  state.recipes = fallbackRecipes;
+  state.selectedId = "";
+  recipeStage.classList.remove("show-detail");
+  setStatus("시트를 읽지 못해 샘플을 표시합니다. 공유 권한을 확인해주세요.", fallbackRecipes.length);
+  render();
+}
+
+function parseSheetData(data) {
   const rows = data.table.rows.map((row) => row.c.map((cell) => String(cell?.f || cell?.v || "").trim()));
   return parseRecipeBlocks(rows);
 }
@@ -45,8 +97,7 @@ function parseRecipeBlocks(rows) {
   const maxColumns = Math.max(...rows.map((row) => row.length));
 
   for (let column = 0; column < maxColumns - 1; column += 3) {
-    const blocks = parseColumnPair(rows, column, column + 1);
-    recipes.push(...blocks);
+    recipes.push(...parseColumnPair(rows, column, column + 1));
   }
 
   return recipes.map((recipe, index) => ({
@@ -60,10 +111,10 @@ function parseColumnPair(rows, nameColumn, valueColumn) {
   let pendingMeta = [];
   let current = null;
 
-  rows.forEach((row) => {
+  rows.forEach((row, rowIndex) => {
     const name = cleanCell(row[nameColumn]);
     const value = cleanCell(row[valueColumn]);
-    const looksLikeTitle = isLikelyTitle(name) && !value && hasDetailRowsBelow(rows, nameColumn, valueColumn, row);
+    const looksLikeTitle = isLikelyTitle(name) && !value && hasDetailRowsBelow(rows, nameColumn, valueColumn, rowIndex);
 
     if (looksLikeTitle) {
       if (current) recipes.push(finalizeRecipe(current));
@@ -96,9 +147,8 @@ function parseColumnPair(rows, nameColumn, valueColumn) {
   return recipes.filter((recipe) => recipe.title && recipe.ingredients.length + recipe.steps.length > 0);
 }
 
-function hasDetailRowsBelow(rows, nameColumn, valueColumn, currentRow) {
-  const start = rows.indexOf(currentRow) + 1;
-  const nextRows = rows.slice(start, start + 16);
+function hasDetailRowsBelow(rows, nameColumn, valueColumn, rowIndex) {
+  const nextRows = rows.slice(rowIndex + 1, rowIndex + 17);
   return nextRows.filter((row) => cleanCell(row[nameColumn]) && cleanCell(row[valueColumn])).length >= 2;
 }
 
@@ -127,7 +177,7 @@ function formatPair(name, value) {
 }
 
 function isLikelyTitle(value) {
-  return Boolean(value) && !/[=:]/.test(value) && !/^\d/.test(value) && !/(ml|gram|g|cup|tbsp|tsp|°f|℃)$/i.test(value);
+  return Boolean(value) && !/[=:]/.test(value) && !/^\d/.test(value) && !/(ml|gram|g|cup|tbsp|tsp|oz|°f|℃)$/i.test(value);
 }
 
 function isProcessLine(value) {
@@ -139,28 +189,6 @@ function findTime(lines) {
   return match ? match.replace(/^.*?:\s*/, "") : "";
 }
 
-async function loadRecipes() {
-  statusText.textContent = "시트에서 레시피를 불러오는 중...";
-
-  try {
-    const response = await fetch(`${sheetUrl}&cachebust=${Date.now()}`);
-    if (!response.ok) throw new Error("sheet request failed");
-
-    const recipes = parseSheetResponse(await response.text());
-    if (!recipes.length) throw new Error("no recipes");
-
-    state.recipes = recipes;
-    state.selectedId = recipes[0].id;
-    statusText.textContent = `${recipes.length}개의 레시피를 불러왔습니다.`;
-  } catch {
-    state.recipes = fallbackRecipes;
-    state.selectedId = fallbackRecipes[0].id;
-    statusText.textContent = "시트를 읽지 못해 샘플을 표시합니다. 시트 공유 권한을 확인해주세요.";
-  }
-
-  render();
-}
-
 function getVisibleRecipes() {
   const query = state.query.trim().toLowerCase();
   if (!query) return state.recipes;
@@ -168,7 +196,12 @@ function getVisibleRecipes() {
 }
 
 function getSelectedRecipe() {
-  return state.recipes.find((recipe) => recipe.id === state.selectedId) || state.recipes[0];
+  return state.recipes.find((recipe) => recipe.id === state.selectedId);
+}
+
+function setStatus(message, count) {
+  statusText.textContent = message;
+  recipeCount.textContent = count;
 }
 
 function renderList() {
@@ -187,7 +220,7 @@ function renderList() {
     button.textContent = recipe.title;
     button.addEventListener("click", () => {
       state.selectedId = recipe.id;
-      mobileStage.classList.add("show-detail");
+      recipeStage.classList.add("show-detail");
       render();
     });
     recipeList.append(button);
@@ -196,6 +229,8 @@ function renderList() {
 
 function renderDetail() {
   const recipe = getSelectedRecipe();
+  emptyDetail.hidden = Boolean(recipe);
+  recipeDetail.hidden = !recipe;
   if (!recipe) return;
 
   detailCategory.textContent = recipe.category;
@@ -225,12 +260,13 @@ function render() {
 
 searchInput.addEventListener("input", (event) => {
   state.query = event.target.value;
-  mobileStage.classList.remove("show-detail");
-  renderList();
+  state.selectedId = "";
+  recipeStage.classList.remove("show-detail");
+  render();
 });
 
 document.querySelector("#backButton").addEventListener("click", () => {
-  mobileStage.classList.remove("show-detail");
+  recipeStage.classList.remove("show-detail");
 });
 
 document.querySelector("#refreshButton").addEventListener("click", loadRecipes);
