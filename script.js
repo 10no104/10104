@@ -6,19 +6,16 @@ const apiFromQuery = new URLSearchParams(location.search).get("api");
 const VIEWS = {
   baking: {
     title: "베이킹",
-    description: "App_ 전용 탭에 저장된 베이킹 레시피를 확인합니다.",
     type: "baking",
     tags: ["전체", "빵", "쿠키", "케이크", "타르트", "발효빵"],
   },
   cocktail: {
     title: "칵테일",
-    description: "칵테일 레시피와 제조 정보를 빠르게 확인합니다.",
     type: "cocktail",
     tags: ["전체", "진", "럼", "위스키", "보드카", "무알코올"],
   },
   cooking: {
     title: "요리",
-    description: "일반 요리 레시피와 조리 메모를 모아 봅니다.",
     type: "cooking",
     tags: ["전체", "한식", "파스타", "소스", "찌개", "반찬"],
   },
@@ -49,65 +46,6 @@ const PLACE_TYPE_ICONS = {
   기타: "📍",
 };
 
-const SAMPLE_PLACES = [
-  {
-    placeId: "sample-place-1",
-    name: "저장한 음식점",
-    note: "App_ReferenceData에 장소를 넣으면 실제 장소가 표시됩니다.",
-    type: "음식점",
-    lat: 37.5665,
-    lng: 126.978,
-    googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=37.5665,126.978",
-  },
-];
-
-const SAMPLE_RECIPES = [
-  {
-    recipeId: "sample-baking-1",
-    name: "Pizza Dough",
-    recipeType: "baking",
-    description: "실제 데이터가 없을 때 화면 확인용으로 보이는 샘플입니다.",
-    sourceName: "Sample",
-    sourceUrl: "",
-    category: "발효빵",
-    tags: ["빵", "발효빵"],
-    baseYield: "2",
-    yieldUnit: "balls",
-    updatedAt: "2026-07-12",
-    feedbackCount: 0,
-    ingredients: [
-      { name: "Water", amount: "600", unit: "ml", groupName: "반죽" },
-      { name: "Yeast", amount: "1", unit: "tsp", groupName: "반죽" },
-      { name: "Bread Flour", amount: "600", unit: "g", groupName: "반죽" },
-      { name: "Salt", amount: "1", unit: "Tbsp", groupName: "반죽" },
-    ],
-    steps: [
-      { instruction: "재료를 섞어 반죽을 만듭니다." },
-      { instruction: "실온에서 2시간 또는 냉장고에서 1~7일 발효합니다." },
-      { instruction: "500°F에서 6~7분 굽습니다." },
-    ],
-  },
-  {
-    recipeId: "sample-baking-2",
-    name: "우유 식빵",
-    recipeType: "baking",
-    description: "부드러운 우유 식빵 샘플입니다.",
-    category: "빵",
-    tags: ["빵"],
-    baseYield: "1",
-    yieldUnit: "loaf",
-    updatedAt: "2026-07-12",
-    feedbackCount: 0,
-    ingredients: [
-      { name: "Milk", amount: "200", unit: "ml", groupName: "반죽" },
-      { name: "Yeast", amount: "3", unit: "g", groupName: "반죽" },
-      { name: "Bread Flour", amount: "250", unit: "g", groupName: "반죽" },
-      { name: "Butter", amount: "20", unit: "g", groupName: "반죽" },
-    ],
-    steps: [{ instruction: "반죽 후 1차, 2차 발효를 진행합니다." }, { instruction: "355°F에서 25분 굽습니다." }],
-  },
-];
-
 const state = {
   view: "baking",
   recipes: [],
@@ -128,7 +66,6 @@ if (apiFromQuery) {
 }
 
 const sectionTitle = document.querySelector("#sectionTitle");
-const sectionDescription = document.querySelector("#sectionDescription");
 const statusText = document.querySelector("#statusText");
 const recipeCount = document.querySelector("#recipeCount");
 const apiPanel = document.querySelector("#apiPanel");
@@ -167,7 +104,7 @@ async function loadRecipes() {
   const current = VIEWS[state.view];
   state.selectedId = "";
   recipeStage.classList.remove("show-detail");
-  setStatus("레시피를 불러오는 중...", 0);
+  setStatus("불러오는 중", 0);
 
   if (!current) {
     renderStaticView();
@@ -178,15 +115,10 @@ async function loadRecipes() {
   try {
     const recipes = state.apiUrl ? await loadFromApiWithFallback(current.type) : await loadFromSpreadsheet(current.type);
     state.recipes = normalizeRecipes(recipes);
-
-    if (state.recipes.length) {
-      setStatus(`${state.recipes.length}개의 레시피를 불러왔습니다.`, state.recipes.length);
-    } else {
-      setStatus("연결됨. App_Recipes에 표시할 레시피가 아직 없습니다.", 0);
-    }
-  } catch (error) {
-    state.recipes = SAMPLE_RECIPES.filter((recipe) => recipe.recipeType === current.type);
-    setStatus(`연결 실패: ${error.message}. 샘플을 표시합니다.`, state.recipes.length);
+    setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
+  } catch {
+    state.recipes = [];
+    setStatus("오류", 0);
   }
 
   render();
@@ -195,10 +127,8 @@ async function loadRecipes() {
 async function loadFromApiWithFallback(recipeType) {
   try {
     return await loadFromApi(recipeType);
-  } catch (error) {
-    const recipes = await loadFromSpreadsheet(recipeType);
-    setStatus("Web App 접근 권한이 맞지 않아 공유 시트 읽기로 표시합니다.", recipes.length);
-    return recipes;
+  } catch {
+    return loadFromSpreadsheet(recipeType);
   }
 }
 
@@ -209,9 +139,9 @@ async function loadFromApi(recipeType) {
 }
 
 async function createRecipe(data) {
-  if (!state.apiUrl) throw new Error("새 레시피 저장에는 Apps Script Web App URL이 필요합니다.");
+  if (!state.apiUrl) throw new Error("URL 필요");
   const payload = await jsonp(buildApiUrl("createRecipe", { data: JSON.stringify(data) }));
-  if (!payload.ok) throw new Error(payload.error?.message || "CREATE_FAILED");
+  if (!payload.ok) throw new Error(payload.error?.message || "저장 실패");
   return payload.data;
 }
 
@@ -272,7 +202,7 @@ function injectJsonpScript(url, callback, resolve, reject) {
   const script = document.createElement("script");
   const timeout = window.setTimeout(() => {
     cleanup();
-    reject(new Error("요청 시간이 초과되었습니다"));
+    reject(new Error("시간 초과"));
   }, 12000);
 
   function cleanup() {
@@ -288,7 +218,7 @@ function injectJsonpScript(url, callback, resolve, reject) {
 
   script.onerror = () => {
     cleanup();
-    reject(new Error("데이터를 불러오지 못했습니다"));
+    reject(new Error("로드 실패"));
   };
 
   script.src = url;
@@ -315,7 +245,7 @@ function parseSheetTable(data) {
 function decorateRecipe(recipe, ingredients, steps, feedback) {
   const version = recipe.currentVersion || "";
   const recipeFeedback = feedback.filter((item) => item.recipeId === recipe.recipeId);
-  const latestFeedback = recipeFeedback.length ? recipeFeedback[recipeFeedback.length - 1].result : "";
+  const latestFeedbackText = recipeFeedback.length ? recipeFeedback[recipeFeedback.length - 1].result : "";
 
   return {
     ...recipe,
@@ -326,7 +256,7 @@ function decorateRecipe(recipe, ingredients, steps, feedback) {
       .filter((item) => item.recipeId === recipe.recipeId && (!version || String(item.version) === String(version)))
       .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0)),
     feedbackCount: recipeFeedback.length,
-    latestFeedback,
+    latestFeedback: latestFeedbackText,
   };
 }
 
@@ -366,7 +296,6 @@ function setView(view) {
     document.querySelector("#mapScreen").classList.remove("active");
     document.querySelector("#toolsScreen").classList.remove("active");
     sectionTitle.textContent = VIEWS[view].title;
-    sectionDescription.textContent = VIEWS[view].description;
     renderTags();
     loadRecipes();
     updateHash();
@@ -381,17 +310,14 @@ function renderStaticView() {
   document.querySelector("#recipesScreen").classList.remove("active");
   document.querySelector("#mapScreen").classList.toggle("active", state.view === "map");
   document.querySelector("#toolsScreen").classList.toggle("active", state.view === "tools");
-  sectionTitle.textContent = state.view === "map" ? "지도" : "계산·정보";
-  sectionDescription.textContent =
-    state.view === "map" ? "저장한 Google My Maps를 확인합니다." : "단위 계산과 조리 기준 정보를 확인합니다.";
-  setStatus(state.view === "map" ? "지도를 표시합니다." : "계산 도구를 사용할 수 있습니다.", 0);
-  recipeCount.textContent = "-";
+  sectionTitle.textContent = state.view === "map" ? "지도" : "계산";
+  setStatus(state.view === "map" ? "지도" : "계산", "-");
   if (state.view === "map") initMapView();
 }
 
 async function initMapView() {
   if (!window.L) {
-    mapStatus.textContent = "지도 라이브러리를 불러오지 못했습니다.";
+    mapStatus.textContent = "지도 오류";
     return;
   }
 
@@ -409,20 +335,15 @@ async function initMapView() {
 }
 
 async function loadPlaces() {
-  mapStatus.textContent = "장소를 불러오는 중...";
+  mapStatus.textContent = "불러오는 중";
 
   try {
     const rows = await readAppSheet(APP_SHEETS.referenceData);
     state.places = rows.filter((row) => String(row.category).toLowerCase() === "place").map(normalizePlace).filter(Boolean);
-    if (!state.places.length) {
-      state.places = SAMPLE_PLACES;
-      mapStatus.textContent = "저장된 장소가 없어 샘플 핀을 표시합니다.";
-    } else {
-      mapStatus.textContent = `${state.places.length}개의 장소를 표시합니다.`;
-    }
-  } catch (error) {
-    state.places = SAMPLE_PLACES;
-    mapStatus.textContent = `장소를 읽지 못해 샘플 핀을 표시합니다. ${error.message}`;
+    mapStatus.textContent = state.places.length ? `${state.places.length}개` : "장소 없음";
+  } catch {
+    state.places = [];
+    mapStatus.textContent = "오류";
   }
 
   renderPlaces();
@@ -436,7 +357,7 @@ function normalizePlace(row) {
 
   return {
     placeId: row.referenceId || parsed.placeId || `${lat},${lng}`,
-    name: row.name || parsed.name || "저장한 장소",
+    name: row.name || parsed.name || "장소",
     note: row.note || parsed.note || "",
     type: parsed.type || parsed.category || "기타",
     lat,
@@ -478,11 +399,11 @@ function placeIcon(type) {
 
 function showCurrentLocation() {
   if (!navigator.geolocation) {
-    mapStatus.textContent = "이 브라우저에서는 현재 위치를 사용할 수 없습니다.";
+    mapStatus.textContent = "위치 꺼짐";
     return;
   }
 
-  mapStatus.textContent = "현재 위치를 확인하는 중...";
+  mapStatus.textContent = "확인 중";
   navigator.geolocation.getCurrentPosition(
     (position) => {
       const latlng = [position.coords.latitude, position.coords.longitude];
@@ -497,10 +418,10 @@ function showCurrentLocation() {
         }).addTo(state.map);
       }
       state.map.setView(latlng, Math.max(state.map.getZoom(), 14));
-      mapStatus.textContent = "현재 위치를 지도에만 표시했습니다.";
+      mapStatus.textContent = "현재 위치";
     },
     () => {
-      mapStatus.textContent = "위치 권한이 거부되어 현재 위치만 표시하지 않습니다.";
+      mapStatus.textContent = "위치 꺼짐";
     },
     { enableHighAccuracy: true, timeout: 9000, maximumAge: 60000 },
   );
@@ -547,7 +468,7 @@ function renderList() {
   recipeList.innerHTML = "";
 
   if (!recipes.length) {
-    recipeList.innerHTML = '<p class="empty-state">표시할 레시피가 없습니다.</p>';
+    recipeList.innerHTML = '<p class="empty-state">없음</p>';
     return;
   }
 
@@ -581,7 +502,7 @@ function renderDetail() {
 
   sourceLink.hidden = !recipe.sourceUrl;
   sourceLink.href = recipe.sourceUrl || "#";
-  sourceLink.textContent = recipe.sourceName ? `${recipe.sourceName} 보기` : "출처 보기";
+  sourceLink.textContent = recipe.sourceName || "출처";
 
   renderIngredients(recipe.ingredients || []);
   renderSteps(recipe.steps || []);
@@ -591,7 +512,7 @@ function renderDetail() {
 
 function renderIngredients(items) {
   ingredientList.innerHTML = "";
-  const list = items.length ? items : [{ name: "등록된 재료가 없습니다.", amount: "", unit: "" }];
+  const list = items.length ? items : [{ name: "없음", amount: "", unit: "" }];
   list.forEach((item) => {
     const li = document.createElement("li");
     const group = item.groupName ? `[${item.groupName}] ` : "";
@@ -602,7 +523,7 @@ function renderIngredients(items) {
 
 function renderSteps(items) {
   stepList.innerHTML = "";
-  const list = items.length ? items : [{ instruction: "등록된 조리 순서가 없습니다." }];
+  const list = items.length ? items : [{ instruction: "없음" }];
   list.forEach((item) => {
     const li = document.createElement("li");
     li.textContent = item.instruction || item;
@@ -685,12 +606,12 @@ document.querySelector("#cancelRecipeForm").addEventListener("click", closeRecip
 
 recipeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  recipeFormStatus.textContent = "저장하는 중...";
+  recipeFormStatus.textContent = "저장 중";
 
   try {
     const data = collectRecipeForm();
     await createRecipe(data);
-    recipeFormStatus.textContent = "저장했습니다.";
+    recipeFormStatus.textContent = "저장됨";
     closeRecipeForm();
     setView(data.recipeType);
   } catch (error) {
@@ -729,7 +650,7 @@ setView(state.view);
 
 function openRecipeForm() {
   recipeForm.reset();
-  recipeFormStatus.textContent = state.apiUrl ? "" : "저장하려면 Apps Script Web App URL을 먼저 연결해야 합니다.";
+  recipeFormStatus.textContent = state.apiUrl ? "" : "URL 필요";
   document.querySelector("#recipeTypeInput").value = VIEWS[state.view]?.type || "baking";
   recipeModal.hidden = false;
   document.querySelector("#recipeNameInput").focus();
