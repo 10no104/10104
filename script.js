@@ -1,8 +1,5 @@
 import { CONFIG } from "./assets/js/config.js";
 
-const API_STORAGE_KEY = "recipeStudioApiUrl";
-const apiFromQuery = new URLSearchParams(location.search).get("api");
-
 const VIEWS = {
   baking: {
     title: "베이킹",
@@ -54,23 +51,16 @@ const state = {
   placeQuery: "",
   tag: "전체",
   sort: "updatedAt",
-  apiUrl: apiFromQuery || localStorage.getItem(API_STORAGE_KEY) || CONFIG.APPS_SCRIPT_URL || "",
+  apiUrl: CONFIG.APPS_SCRIPT_URL || "",
   places: [],
   map: null,
   placeLayer: null,
   locationMarker: null,
 };
 
-if (apiFromQuery) {
-  localStorage.setItem(API_STORAGE_KEY, apiFromQuery);
-  history.replaceState(null, "", location.pathname + location.hash);
-}
-
 const sectionTitle = document.querySelector("#sectionTitle");
 const statusText = document.querySelector("#statusText");
 const recipeCount = document.querySelector("#recipeCount");
-const apiPanel = document.querySelector("#apiPanel");
-const apiUrlInput = document.querySelector("#apiUrlInput");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
 const tagRow = document.querySelector("#tagRow");
@@ -100,8 +90,6 @@ const convertResult = document.querySelector("#convertResult");
 const recipeModal = document.querySelector("#recipeModal");
 const recipeForm = document.querySelector("#recipeForm");
 const recipeFormStatus = document.querySelector("#recipeFormStatus");
-
-apiUrlInput.value = state.apiUrl;
 
 async function loadRecipes() {
   const current = VIEWS[state.view];
@@ -306,6 +294,7 @@ function setView(view) {
   state.query = "";
   state.tag = "전체";
   searchInput.value = "";
+  document.body.classList.toggle("map-view", view === "map");
   document.querySelectorAll(".bottom-nav button").forEach((button) => {
     button.classList.toggle("active", button.dataset.view === view);
   });
@@ -608,27 +597,6 @@ document.querySelectorAll(".bottom-nav button").forEach((button) => {
   button.addEventListener("click", () => setView(button.dataset.view));
 });
 
-document.querySelector("#apiSettingsButton").addEventListener("click", () => {
-  apiPanel.hidden = !apiPanel.hidden;
-  if (!apiPanel.hidden) apiUrlInput.focus();
-});
-
-document.querySelector("#saveApiUrlButton").addEventListener("click", () => {
-  const nextUrl = apiUrlInput.value.trim();
-  if (!nextUrl) return;
-  state.apiUrl = nextUrl;
-  localStorage.setItem(API_STORAGE_KEY, nextUrl);
-  apiPanel.hidden = true;
-  loadRecipes();
-});
-
-document.querySelector("#clearApiUrlButton").addEventListener("click", () => {
-  localStorage.removeItem(API_STORAGE_KEY);
-  state.apiUrl = CONFIG.APPS_SCRIPT_URL || "";
-  apiUrlInput.value = state.apiUrl;
-  loadRecipes();
-});
-
 document.querySelector("#addRecipeButton").addEventListener("click", () => {
   openRecipeForm();
 });
@@ -648,10 +616,6 @@ recipeForm.addEventListener("submit", async (event) => {
     setView(data.recipeType);
   } catch (error) {
     recipeFormStatus.textContent = error.message;
-    if (!state.apiUrl) {
-      apiPanel.hidden = false;
-      apiUrlInput.focus();
-    }
   }
 });
 
@@ -688,7 +652,7 @@ setView(state.view);
 
 function openRecipeForm() {
   recipeForm.reset();
-  recipeFormStatus.textContent = state.apiUrl ? "" : "URL 필요";
+  recipeFormStatus.textContent = state.apiUrl ? "" : "URL 없음";
   document.querySelector("#recipeTypeInput").value = VIEWS[state.view]?.type || "baking";
   recipeModal.hidden = false;
   document.querySelector("#recipeNameInput").focus();
@@ -717,10 +681,6 @@ async function handleDeleteRecipe() {
     setStatus(previousStatus || "오류", state.recipes.length);
     const message = error.message === "지원하지 않는 action입니다." ? "Apps Script 재배포 필요" : error.message;
     alert(message);
-    if (!state.apiUrl) {
-      apiPanel.hidden = false;
-      apiUrlInput.focus();
-    }
   }
 }
 
