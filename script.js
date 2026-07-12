@@ -122,6 +122,9 @@ const mapOpenLink = document.querySelector("#mapOpenLink");
 const convertAmount = document.querySelector("#convertAmount");
 const convertFrom = document.querySelector("#convertFrom");
 const convertResult = document.querySelector("#convertResult");
+const recipeModal = document.querySelector("#recipeModal");
+const recipeForm = document.querySelector("#recipeForm");
+const recipeFormStatus = document.querySelector("#recipeFormStatus");
 
 apiUrlInput.value = state.apiUrl;
 
@@ -156,6 +159,13 @@ async function loadRecipes() {
 async function loadFromApi(recipeType) {
   const payload = await jsonp(buildApiUrl("listRecipes", { type: recipeType }));
   if (!payload.ok) throw new Error(payload.error?.message || "API_ERROR");
+  return payload.data;
+}
+
+async function createRecipe(data) {
+  if (!state.apiUrl) throw new Error("새 레시피 저장에는 Apps Script Web App URL이 필요합니다.");
+  const payload = await jsonp(buildApiUrl("createRecipe", { data: JSON.stringify(data) }));
+  if (!payload.ok) throw new Error(payload.error?.message || "CREATE_FAILED");
   return payload.data;
 }
 
@@ -502,6 +512,32 @@ document.querySelector("#clearApiUrlButton").addEventListener("click", () => {
   loadRecipes();
 });
 
+document.querySelector("#addRecipeButton").addEventListener("click", () => {
+  openRecipeForm();
+});
+
+document.querySelector("#closeRecipeForm").addEventListener("click", closeRecipeForm);
+document.querySelector("#cancelRecipeForm").addEventListener("click", closeRecipeForm);
+
+recipeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  recipeFormStatus.textContent = "저장하는 중...";
+
+  try {
+    const data = collectRecipeForm();
+    await createRecipe(data);
+    recipeFormStatus.textContent = "저장했습니다.";
+    closeRecipeForm();
+    setView(data.recipeType);
+  } catch (error) {
+    recipeFormStatus.textContent = error.message;
+    if (!state.apiUrl) {
+      apiPanel.hidden = false;
+      apiUrlInput.focus();
+    }
+  }
+});
+
 searchInput.addEventListener("input", (event) => {
   state.query = event.target.value;
   state.selectedId = "";
@@ -528,3 +564,46 @@ mapOpenLink.href = CONFIG.MAP_EMBED_URL;
 initFromHash();
 updateConverter();
 setView(state.view);
+
+function openRecipeForm() {
+  recipeForm.reset();
+  recipeFormStatus.textContent = state.apiUrl ? "" : "저장하려면 Apps Script Web App URL을 먼저 연결해야 합니다.";
+  document.querySelector("#recipeTypeInput").value = VIEWS[state.view]?.type || "baking";
+  recipeModal.hidden = false;
+  document.querySelector("#recipeNameInput").focus();
+}
+
+function closeRecipeForm() {
+  recipeModal.hidden = true;
+}
+
+function collectRecipeForm() {
+  return {
+    name: document.querySelector("#recipeNameInput").value.trim(),
+    recipeType: document.querySelector("#recipeTypeInput").value,
+    category: document.querySelector("#recipeCategoryInput").value.trim(),
+    description: document.querySelector("#recipeDescriptionInput").value.trim(),
+    baseYield: document.querySelector("#recipeYieldInput").value.trim(),
+    yieldUnit: document.querySelector("#recipeYieldUnitInput").value.trim(),
+    tags: document.querySelector("#recipeTagsInput").value.split(",").map((tag) => tag.trim()).filter(Boolean),
+    ingredients: parseIngredientLines(document.querySelector("#recipeIngredientsInput").value),
+    steps: parseStepLines(document.querySelector("#recipeStepsInput").value),
+  };
+}
+
+function parseIngredientLines(value) {
+  return value
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const [name = "", amount = "", unit = "", groupName = "", notes = ""] = line.split("|").map((part) => part.trim());
+      return { name, amount, unit, groupName, notes, sortOrder: index + 1 };
+    })
+    .filter((item) => item.name);
+}
+
+function parseStepLines(value) {
+  return value
+    .split(/\r?\n/)
+    .map((line, index) => ({ instruction: line.trim(), sortOrder: index + 1 }))
+    .filter((item) => item.instruction);
+}

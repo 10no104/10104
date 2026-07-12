@@ -108,7 +108,7 @@
           </article>
         </section>
 
-        <button class="fab" id="addRecipeButton" type="button" disabled>+ 새 레시피</button>
+        <button class="fab" id="addRecipeButton" type="button">+ 새 레시피</button>
       </section>
 
       <section class="screen" id="mapScreen" aria-label="지도">
@@ -154,6 +154,76 @@
         </div>
       </section>
     </main>
+
+    <section class="recipe-modal" id="recipeModal" hidden aria-label="새 레시피 추가">
+      <form class="recipe-form" id="recipeForm">
+        <div class="form-heading">
+          <div>
+            <p class="eyebrow">New Recipe</p>
+            <h2>새 레시피</h2>
+          </div>
+          <button class="icon-button" id="closeRecipeForm" type="button" aria-label="닫기">×</button>
+        </div>
+
+        <label>
+          <span>레시피 이름</span>
+          <input id="recipeNameInput" required maxlength="80" placeholder="예: 초코칩 쿠키" />
+        </label>
+
+        <div class="form-grid">
+          <label>
+            <span>종류</span>
+            <select id="recipeTypeInput">
+              <option value="baking">베이킹</option>
+              <option value="cocktail">칵테일</option>
+              <option value="cooking">요리</option>
+            </select>
+          </label>
+          <label>
+            <span>카테고리</span>
+            <input id="recipeCategoryInput" maxlength="40" placeholder="예: 쿠키" />
+          </label>
+        </div>
+
+        <label>
+          <span>설명</span>
+          <input id="recipeDescriptionInput" maxlength="160" placeholder="짧은 메모나 특징" />
+        </label>
+
+        <div class="form-grid">
+          <label>
+            <span>기준 수량</span>
+            <input id="recipeYieldInput" maxlength="20" placeholder="예: 12" />
+          </label>
+          <label>
+            <span>단위</span>
+            <input id="recipeYieldUnitInput" maxlength="20" placeholder="예: cookies" />
+          </label>
+        </div>
+
+        <label>
+          <span>태그</span>
+          <input id="recipeTagsInput" maxlength="120" placeholder="쉼표로 구분: 쿠키, 초콜릿" />
+        </label>
+
+        <label>
+          <span>재료</span>
+          <textarea id="recipeIngredientsInput" rows="6" placeholder="한 줄에 하나씩 입력&#10;Butter | 115 | g | 반죽&#10;Sugar | 100 | g | 반죽"></textarea>
+        </label>
+
+        <label>
+          <span>조리 순서</span>
+          <textarea id="recipeStepsInput" rows="6" placeholder="한 줄에 하나씩 입력&#10;버터와 설탕을 섞는다.&#10;350°F에서 12분 굽는다."></textarea>
+        </label>
+
+        <p class="form-status" id="recipeFormStatus"></p>
+
+        <div class="form-actions">
+          <button type="button" id="cancelRecipeForm">취소</button>
+          <button type="submit">저장</button>
+        </div>
+      </form>
+    </section>
 
     <nav class="bottom-nav" aria-label="하단 내비게이션">
       <button class="active" type="button" data-view="baking">베이킹</button>

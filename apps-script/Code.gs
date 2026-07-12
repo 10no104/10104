@@ -115,10 +115,78 @@ function handleRequest_(request) {
     const action = request.action;
     if (action === "listRecipes") return ok_(listRecipes_(request.type));
     if (action === "getRecipe") return ok_(getRecipe_(request.recipeId));
+    if (action === "createRecipe") return ok_(createRecipe_(parseData_(request.data || request)));
     if (action === "setupSpreadsheet") return ok_(setupSpreadsheet());
     return fail_("UNKNOWN_ACTION", "지원하지 않는 action입니다.");
   } catch (error) {
     return fail_("SERVER_ERROR", error.message);
+  }
+}
+
+function createRecipe_(data) {
+  if (!data || !data.name) throw new Error("레시피 이름이 필요합니다.");
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    setupSpreadsheet();
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const recipeId = Utilities.getUuid();
+    const version = "1";
+    const now = new Date().toISOString();
+    const recipe = {
+      recipeId,
+      name: String(data.name || "").trim(),
+      recipeType: String(data.recipeType || "baking").trim(),
+      description: String(data.description || "").trim(),
+      sourceName: String(data.sourceName || "").trim(),
+      sourceUrl: String(data.sourceUrl || "").trim(),
+      category: String(data.category || "").trim(),
+      tagsJson: JSON.stringify(data.tags || []),
+      baseYield: String(data.baseYield || "").trim(),
+      yieldUnit: String(data.yieldUnit || "").trim(),
+      imageUrl: String(data.imageUrl || "").trim(),
+      notes: String(data.notes || "").trim(),
+      currentVersion: version,
+      createdAt: now,
+      updatedAt: now,
+      isArchived: "false",
+    };
+
+    appendObject_(ss, SHEETS.RECIPES, recipe);
+
+    (data.ingredients || []).forEach((item, index) => {
+      appendObject_(ss, SHEETS.INGREDIENTS, {
+        ingredientId: Utilities.getUuid(),
+        recipeId,
+        version,
+        groupName: item.groupName || "",
+        sortOrder: item.sortOrder || index + 1,
+        name: item.name || "",
+        amount: item.amount || "",
+        unit: item.unit || "",
+        notes: item.notes || "",
+      });
+    });
+
+    (data.steps || []).forEach((item, index) => {
+      appendObject_(ss, SHEETS.STEPS, {
+        stepId: Utilities.getUuid(),
+        recipeId,
+        version,
+        sortOrder: item.sortOrder || index + 1,
+        instruction: item.instruction || "",
+        durationMinutes: item.durationMinutes || "",
+        temperatureC: item.temperatureC || "",
+        notes: item.notes || "",
+      });
+    });
+
+    return getRecipe_(recipeId);
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -175,6 +243,25 @@ function readObjects_(ss, sheetName) {
     });
     return object;
   });
+}
+
+function appendObject_(ss, sheetName, object) {
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error(sheetName + " 시트를 찾을 수 없습니다.");
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(String);
+  const row = headers.map((header) => object[header] !== undefined ? object[header] : "");
+  sheet.appendRow(row);
+}
+
+function parseData_(value) {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    throw new Error("data JSON을 읽을 수 없습니다.");
+  }
 }
 
 function isHeaderMissing_(sheet) {
