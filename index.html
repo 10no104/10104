@@ -11,16 +11,35 @@
     <main class="app-shell">
       <header class="app-header">
         <div>
-          <p class="eyebrow" id="sectionEyebrow">Recipe Studio</p>
+          <p class="eyebrow">Recipe Studio</p>
           <h1 id="sectionTitle">베이킹</h1>
           <p id="sectionDescription">App_ 전용 탭에 저장된 베이킹 레시피를 확인합니다.</p>
         </div>
-        <button class="icon-button" id="refreshButton" type="button" aria-label="새로고침" title="새로고침">↻</button>
+        <div class="header-actions">
+          <button class="icon-button" id="apiSettingsButton" type="button" aria-label="API 설정" title="API 설정">⚙</button>
+          <button class="icon-button" id="refreshButton" type="button" aria-label="새로고침" title="새로고침">↻</button>
+        </div>
       </header>
 
       <section class="status-strip" id="statusStrip">
         <strong id="recipeCount">0</strong>
         <span id="statusText">API 설정을 확인하는 중...</span>
+      </section>
+
+      <section class="api-panel" id="apiPanel" hidden>
+        <div>
+          <p class="eyebrow">Apps Script Web App</p>
+          <h2>연결 URL</h2>
+          <p>배포한 Web App URL을 넣으면 이 브라우저에 저장하고 실제 App_ 탭 데이터를 불러옵니다.</p>
+        </div>
+        <label>
+          <span>Web App URL</span>
+          <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" />
+        </label>
+        <div class="api-actions">
+          <button id="saveApiUrlButton" type="button">저장하고 연결</button>
+          <button id="clearApiUrlButton" type="button">저장값 삭제</button>
+        </div>
       </section>
 
       <section class="screen active" id="recipesScreen" aria-label="레시피">

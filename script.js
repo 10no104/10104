@@ -1,5 +1,8 @@
 import { CONFIG } from "./assets/js/config.js";
 
+const API_STORAGE_KEY = "recipeStudioApiUrl";
+const apiFromQuery = new URLSearchParams(location.search).get("api");
+
 const VIEWS = {
   baking: {
     title: "베이킹",
@@ -21,12 +24,19 @@ const VIEWS = {
   },
 };
 
+const APP_SHEETS = {
+  recipes: "App_Recipes",
+  ingredients: "App_Ingredients",
+  steps: "App_Steps",
+  feedback: "App_Feedback",
+};
+
 const SAMPLE_RECIPES = [
   {
     recipeId: "sample-baking-1",
     name: "Pizza Dough",
     recipeType: "baking",
-    description: "실제 API 연결 전 화면 확인용 샘플입니다.",
+    description: "실제 데이터가 없을 때 화면 확인용으로 보이는 샘플입니다.",
     sourceName: "Sample",
     sourceUrl: "",
     category: "발효빵",
@@ -75,13 +85,20 @@ const state = {
   query: "",
   tag: "전체",
   sort: "updatedAt",
-  apiReady: Boolean(CONFIG.APPS_SCRIPT_URL),
+  apiUrl: apiFromQuery || localStorage.getItem(API_STORAGE_KEY) || CONFIG.APPS_SCRIPT_URL || "",
 };
+
+if (apiFromQuery) {
+  localStorage.setItem(API_STORAGE_KEY, apiFromQuery);
+  history.replaceState(null, "", location.pathname + location.hash);
+}
 
 const sectionTitle = document.querySelector("#sectionTitle");
 const sectionDescription = document.querySelector("#sectionDescription");
 const statusText = document.querySelector("#statusText");
 const recipeCount = document.querySelector("#recipeCount");
+const apiPanel = document.querySelector("#apiPanel");
+const apiUrlInput = document.querySelector("#apiUrlInput");
 const searchInput = document.querySelector("#searchInput");
 const sortSelect = document.querySelector("#sortSelect");
 const tagRow = document.querySelector("#tagRow");
@@ -106,53 +123,7 @@ const convertAmount = document.querySelector("#convertAmount");
 const convertFrom = document.querySelector("#convertFrom");
 const convertResult = document.querySelector("#convertResult");
 
-function apiUrl(action, params = {}) {
-  const url = new URL(CONFIG.APPS_SCRIPT_URL);
-  url.searchParams.set("action", action);
-  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-  return url.toString();
-}
-
-async function apiGet(action, params) {
-  if (!CONFIG.APPS_SCRIPT_URL) throw new Error("NO_API_URL");
-  const payload = await jsonp(apiUrl(action, params));
-  if (!payload.ok) throw new Error(payload.error?.message || "API_ERROR");
-  return payload.data;
-}
-
-function jsonp(url) {
-  return new Promise((resolve, reject) => {
-    const callback = `__recipeApi_${Date.now()}_${Math.round(Math.random() * 100000)}`;
-    const script = document.createElement("script");
-    const requestUrl = new URL(url);
-    requestUrl.searchParams.set("callback", callback);
-
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error("API_TIMEOUT"));
-    }, 10000);
-
-    function cleanup() {
-      window.clearTimeout(timeout);
-      script.remove();
-      delete window[callback];
-    }
-
-    window[callback] = (payload) => {
-      cleanup();
-      resolve(payload);
-    };
-
-    script.onerror = () => {
-      cleanup();
-      reject(new Error("API_LOAD_ERROR"));
-    };
-
-    script.src = requestUrl.toString();
-    script.async = true;
-    document.head.append(script);
-  });
-}
+apiUrlInput.value = state.apiUrl;
 
 async function loadRecipes() {
   const current = VIEWS[state.view];
@@ -166,20 +137,141 @@ async function loadRecipes() {
   }
 
   try {
-    const recipes = await apiGet("listRecipes", { type: current.type });
+    const recipes = state.apiUrl ? await loadFromApi(current.type) : await loadFromSpreadsheet(current.type);
     state.recipes = normalizeRecipes(recipes);
-    setStatus(`${state.recipes.length}개의 레시피를 불러왔습니다.`, state.recipes.length);
+
+    if (state.recipes.length) {
+      setStatus(`${state.recipes.length}개의 레시피를 불러왔습니다.`, state.recipes.length);
+    } else {
+      setStatus("연결됨. App_Recipes에 표시할 레시피가 아직 없습니다.", 0);
+    }
   } catch (error) {
     state.recipes = SAMPLE_RECIPES.filter((recipe) => recipe.recipeType === current.type);
-    setStatus(
-      state.apiReady
-        ? "API 응답을 읽지 못해 샘플을 표시합니다."
-        : "Apps Script URL이 비어 있어 샘플을 표시합니다.",
-      state.recipes.length,
-    );
+    setStatus(`연결 실패: ${error.message}. 샘플을 표시합니다.`, state.recipes.length);
   }
 
   render();
+}
+
+async function loadFromApi(recipeType) {
+  const payload = await jsonp(buildApiUrl("listRecipes", { type: recipeType }));
+  if (!payload.ok) throw new Error(payload.error?.message || "API_ERROR");
+  return payload.data;
+}
+
+async function loadFromSpreadsheet(recipeType) {
+  if (!CONFIG.SPREADSHEET_ID) throw new Error("SPREADSHEET_ID 없음");
+
+  const [recipes, ingredients, steps, feedback] = await Promise.all([
+    readAppSheet(APP_SHEETS.recipes),
+    readAppSheet(APP_SHEETS.ingredients),
+    readAppSheet(APP_SHEETS.steps),
+    readAppSheet(APP_SHEETS.feedback),
+  ]);
+
+  return recipes
+    .filter((recipe) => String(recipe.isArchived).toLowerCase() !== "true")
+    .filter((recipe) => !recipeType || recipe.recipeType === recipeType)
+    .map((recipe) => decorateRecipe(recipe, ingredients, steps, feedback));
+}
+
+function buildApiUrl(action, params = {}) {
+  const url = new URL(state.apiUrl);
+  url.searchParams.set("action", action);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  return url.toString();
+}
+
+function buildSheetUrl(sheetName) {
+  const url = new URL(`https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/gviz/tq`);
+  url.searchParams.set("sheet", sheetName);
+  url.searchParams.set("headers", "1");
+  return url.toString();
+}
+
+async function readAppSheet(sheetName) {
+  const data = await googleSheetJsonp(buildSheetUrl(sheetName));
+  return parseSheetTable(data);
+}
+
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const callback = `__recipeApi_${Date.now()}_${Math.round(Math.random() * 100000)}`;
+    const requestUrl = new URL(url);
+    requestUrl.searchParams.set("callback", callback);
+    injectJsonpScript(requestUrl.toString(), callback, resolve, reject);
+  });
+}
+
+function googleSheetJsonp(url) {
+  return new Promise((resolve, reject) => {
+    const callback = `__recipeSheet_${Date.now()}_${Math.round(Math.random() * 100000)}`;
+    const requestUrl = new URL(url);
+    requestUrl.searchParams.set("tqx", `out:json;responseHandler:${callback}`);
+    injectJsonpScript(requestUrl.toString(), callback, resolve, reject);
+  });
+}
+
+function injectJsonpScript(url, callback, resolve, reject) {
+  const script = document.createElement("script");
+  const timeout = window.setTimeout(() => {
+    cleanup();
+    reject(new Error("요청 시간이 초과되었습니다"));
+  }, 12000);
+
+  function cleanup() {
+    window.clearTimeout(timeout);
+    script.remove();
+    delete window[callback];
+  }
+
+  window[callback] = (payload) => {
+    cleanup();
+    resolve(payload);
+  };
+
+  script.onerror = () => {
+    cleanup();
+    reject(new Error("데이터를 불러오지 못했습니다"));
+  };
+
+  script.src = url;
+  script.async = true;
+  document.head.append(script);
+}
+
+function parseSheetTable(data) {
+  const table = data?.table;
+  if (!table) return [];
+
+  const headers = table.cols.map((column) => column.label || column.id).map(String);
+  return table.rows
+    .map((row) => {
+      const object = {};
+      headers.forEach((header, index) => {
+        object[header] = row.c[index]?.f || row.c[index]?.v || "";
+      });
+      return object;
+    })
+    .filter((row) => Object.values(row).some(Boolean));
+}
+
+function decorateRecipe(recipe, ingredients, steps, feedback) {
+  const version = recipe.currentVersion || "";
+  const recipeFeedback = feedback.filter((item) => item.recipeId === recipe.recipeId);
+  const latestFeedback = recipeFeedback.length ? recipeFeedback[recipeFeedback.length - 1].result : "";
+
+  return {
+    ...recipe,
+    ingredients: ingredients
+      .filter((item) => item.recipeId === recipe.recipeId && (!version || String(item.version) === String(version)))
+      .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0)),
+    steps: steps
+      .filter((item) => item.recipeId === recipe.recipeId && (!version || String(item.version) === String(version)))
+      .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0)),
+    feedbackCount: recipeFeedback.length,
+    latestFeedback,
+  };
 }
 
 function normalizeRecipes(recipes) {
@@ -261,13 +353,13 @@ function renderTags() {
 function getVisibleRecipes() {
   const query = state.query.trim().toLowerCase();
   const recipes = state.recipes.filter((recipe) => {
-    const matchesQuery = !query || recipe.name.toLowerCase().includes(query);
+    const matchesQuery = !query || String(recipe.name || "").toLowerCase().includes(query);
     const matchesTag = state.tag === "전체" || recipe.category === state.tag || recipe.tags?.includes(state.tag);
     return matchesQuery && matchesTag;
   });
 
   return recipes.sort((a, b) => {
-    if (state.sort === "name") return a.name.localeCompare(b.name, "ko");
+    if (state.sort === "name") return String(a.name || "").localeCompare(String(b.name || ""), "ko");
     return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
   });
 }
@@ -364,7 +456,7 @@ function escapeHtml(value) {
 }
 
 function updateHash() {
-  history.replaceState(null, "", `#${state.view}`);
+  history.replaceState(null, "", `${location.pathname}${location.search}#${state.view}`);
 }
 
 function initFromHash() {
@@ -387,6 +479,27 @@ function updateConverter() {
 
 document.querySelectorAll(".bottom-nav button").forEach((button) => {
   button.addEventListener("click", () => setView(button.dataset.view));
+});
+
+document.querySelector("#apiSettingsButton").addEventListener("click", () => {
+  apiPanel.hidden = !apiPanel.hidden;
+  if (!apiPanel.hidden) apiUrlInput.focus();
+});
+
+document.querySelector("#saveApiUrlButton").addEventListener("click", () => {
+  const nextUrl = apiUrlInput.value.trim();
+  if (!nextUrl) return;
+  state.apiUrl = nextUrl;
+  localStorage.setItem(API_STORAGE_KEY, nextUrl);
+  apiPanel.hidden = true;
+  loadRecipes();
+});
+
+document.querySelector("#clearApiUrlButton").addEventListener("click", () => {
+  localStorage.removeItem(API_STORAGE_KEY);
+  state.apiUrl = CONFIG.APPS_SCRIPT_URL || "";
+  apiUrlInput.value = state.apiUrl;
+  loadRecipes();
 });
 
 searchInput.addEventListener("input", (event) => {
