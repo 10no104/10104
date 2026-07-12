@@ -2,87 +2,148 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>레시피 확인함</title>
-    <meta name="description" content="Google Sheets를 데이터베이스처럼 사용하는 레시피 확인 페이지" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>레시피 스튜디오</title>
+    <meta name="description" content="모바일 중심 레시피 관리 페이지" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app-shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Recipe DB</p>
-          <h1>레시피 확인함</h1>
-          <p>시트에 모아둔 레시피를 제목으로 빠르게 찾고, 필요한 것만 눌러 상세를 확인하세요.</p>
+      <header class="app-header">
+        <div>
+          <p class="eyebrow" id="sectionEyebrow">Recipe Studio</p>
+          <h1 id="sectionTitle">베이킹</h1>
+          <p id="sectionDescription">App_ 전용 탭에 저장된 베이킹 레시피를 확인합니다.</p>
         </div>
-        <button class="refresh-button" id="refreshButton" type="button" aria-label="새로고침" title="새로고침">
-          <span aria-hidden="true">↻</span>
-        </button>
+        <button class="icon-button" id="refreshButton" type="button" aria-label="새로고침" title="새로고침">↻</button>
       </header>
 
-      <section class="toolbar" aria-label="레시피 검색">
-        <label>
-          <span>검색</span>
-          <input id="searchInput" type="search" placeholder="Pizza, 식빵, Cookies..." autocomplete="off" />
-        </label>
-        <div class="status-card">
-          <strong id="recipeCount">0</strong>
-          <span id="statusText">시트에서 레시피를 불러오는 중...</span>
-        </div>
+      <section class="status-strip" id="statusStrip">
+        <strong id="recipeCount">0</strong>
+        <span id="statusText">API 설정을 확인하는 중...</span>
       </section>
 
-      <section class="recipe-stage" id="recipeStage">
-        <section class="list-view" aria-label="레시피 제목 목록">
-          <div class="list-heading">
-            <p class="eyebrow">Titles</p>
-            <h2>레시피 목록</h2>
-          </div>
+      <section class="screen active" id="recipesScreen" aria-label="레시피">
+        <div class="toolbar">
+          <label>
+            <span>검색</span>
+            <input id="searchInput" type="search" placeholder="레시피 이름 검색" autocomplete="off" />
+          </label>
+          <label>
+            <span>정렬</span>
+            <select id="sortSelect">
+              <option value="updatedAt">최신 수정순</option>
+              <option value="name">이름순</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="tag-row" id="tagRow" aria-label="태그 필터"></div>
+
+        <section class="recipe-stage" id="recipeStage">
           <div class="recipe-list" id="recipeList"></div>
-        </section>
 
-        <section class="detail-view" aria-label="상세 레시피">
-          <button class="back-button" id="backButton" type="button">← 목록</button>
-
-          <article class="detail-empty" id="emptyDetail">
-            <p class="eyebrow">Select</p>
-            <h2>제목을 누르면 상세 레시피가 열려요</h2>
-            <p>처음 화면은 제목만 보여주고, 선택한 레시피의 재료와 정보만 펼쳐집니다.</p>
-          </article>
-
-          <article class="recipe-detail" id="recipeDetail" hidden>
-            <div class="detail-heading">
-              <p class="eyebrow" id="detailCategory">Recipe</p>
-              <h2 id="detailTitle"></h2>
-              <p id="detailNote"></p>
+          <article class="detail-panel" id="detailPanel">
+            <button class="back-button" id="backButton" type="button">← 목록</button>
+            <div class="empty-detail" id="emptyDetail">
+              <p class="eyebrow">Select</p>
+              <h2>제목을 누르면 상세가 열려요</h2>
+              <p>목록은 빠르게 훑고, 상세에서는 재료와 조리 정보를 분리해서 확인합니다.</p>
             </div>
 
-            <div class="meta-grid">
-              <div>
-                <span id="detailTime">-</span>
-                <small>시간</small>
+            <div class="recipe-detail" id="recipeDetail" hidden>
+              <div class="detail-hero">
+                <p class="eyebrow" id="detailType">Recipe</p>
+                <h2 id="detailName"></h2>
+                <p id="detailDescription"></p>
+                <a class="source-link" id="sourceLink" href="#" target="_blank" rel="noreferrer" hidden>출처 보기</a>
               </div>
-              <div>
-                <span id="detailServings">-</span>
-                <small>분량</small>
-              </div>
-            </div>
 
-            <div class="detail-sections">
-              <section class="recipe-block">
+              <div class="meta-grid">
+                <div><strong id="detailYield">-</strong><span>기준 수량</span></div>
+                <div><strong id="detailUpdated">-</strong><span>수정일</span></div>
+                <div><strong id="detailFeedback">0</strong><span>후기</span></div>
+              </div>
+
+              <div class="action-grid">
+                <button type="button" disabled>수량 변경</button>
+                <button type="button" disabled>후기 작성</button>
+                <button type="button" disabled>레시피 수정</button>
+              </div>
+
+              <section class="info-card">
                 <h3>재료</h3>
                 <ul id="ingredientList"></ul>
               </section>
 
-              <section class="recipe-block">
-                <h3>만드는 법 / 정보</h3>
+              <section class="info-card">
+                <h3>조리 순서</h3>
                 <ol id="stepList"></ol>
+              </section>
+
+              <section class="info-card" id="latestFeedbackCard" hidden>
+                <h3>최근 후기</h3>
+                <p id="latestFeedback"></p>
               </section>
             </div>
           </article>
         </section>
+
+        <button class="fab" id="addRecipeButton" type="button" disabled>+ 새 레시피</button>
+      </section>
+
+      <section class="screen" id="mapScreen" aria-label="지도">
+        <div class="map-card">
+          <div>
+            <p class="eyebrow">My Maps</p>
+            <h2>저장한 장소</h2>
+          </div>
+          <iframe id="mapFrame" title="Google My Maps" loading="lazy"></iframe>
+          <a id="mapOpenLink" target="_blank" rel="noreferrer">새 창에서 지도 보기</a>
+        </div>
+      </section>
+
+      <section class="screen" id="toolsScreen" aria-label="계산 및 정보">
+        <div class="tool-grid">
+          <article class="info-card">
+            <p class="eyebrow">Converter</p>
+            <h2>단위 계산기</h2>
+            <div class="converter">
+              <input id="convertAmount" type="number" inputmode="decimal" value="1" />
+              <select id="convertFrom">
+                <option value="cup">cup</option>
+                <option value="tbsp">tbsp</option>
+                <option value="tsp">tsp</option>
+                <option value="c">°C</option>
+                <option value="f">°F</option>
+              </select>
+              <span>→</span>
+              <strong id="convertResult">240 ml</strong>
+            </div>
+          </article>
+
+          <article class="info-card">
+            <p class="eyebrow">Notes</p>
+            <h2>조리 정보</h2>
+            <ul class="reference-list">
+              <li>1 cup = 240 ml</li>
+              <li>1 tbsp = 15 ml</li>
+              <li>1 tsp = 5 ml</li>
+              <li>이스트 권장 발효 온도는 보통 30~38°C 범위입니다.</li>
+            </ul>
+          </article>
+        </div>
       </section>
     </main>
 
-    <script src="script.js"></script>
+    <nav class="bottom-nav" aria-label="하단 내비게이션">
+      <button class="active" type="button" data-view="baking">베이킹</button>
+      <button type="button" data-view="cocktail">칵테일</button>
+      <button type="button" data-view="cooking">요리</button>
+      <button type="button" data-view="map">지도</button>
+      <button type="button" data-view="tools">계산·정보</button>
+    </nav>
+
+    <script type="module" src="script.js"></script>
   </body>
 </html>
