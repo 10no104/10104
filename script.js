@@ -140,7 +140,7 @@ async function loadRecipes() {
   }
 
   try {
-    const recipes = state.apiUrl ? await loadFromApi(current.type) : await loadFromSpreadsheet(current.type);
+    const recipes = state.apiUrl ? await loadFromApiWithFallback(current.type) : await loadFromSpreadsheet(current.type);
     state.recipes = normalizeRecipes(recipes);
 
     if (state.recipes.length) {
@@ -154,6 +154,16 @@ async function loadRecipes() {
   }
 
   render();
+}
+
+async function loadFromApiWithFallback(recipeType) {
+  try {
+    return await loadFromApi(recipeType);
+  } catch (error) {
+    const recipes = await loadFromSpreadsheet(recipeType);
+    setStatus("Web App 접근 권한이 맞지 않아 공유 시트 읽기로 표시합니다.", recipes.length);
+    return recipes;
+  }
 }
 
 async function loadFromApi(recipeType) {
