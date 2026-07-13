@@ -68,6 +68,9 @@ const searchInput = document.querySelector("#searchInput");
 const tagRow = document.querySelector("#tagRow");
 const recipeStage = document.querySelector("#recipeStage");
 const recipeList = document.querySelector("#recipeList");
+const overviewSelected = document.querySelector("#overviewSelected");
+const overviewVisible = document.querySelector("#overviewVisible");
+const overviewTotal = document.querySelector("#overviewTotal");
 const emptyDetail = document.querySelector("#emptyDetail");
 const recipeDetail = document.querySelector("#recipeDetail");
 const detailType = document.querySelector("#detailType");
@@ -319,6 +322,7 @@ function setView(view) {
   state.query = "";
   state.tag = "전체";
   searchInput.value = "";
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   document.body.classList.toggle("map-view", view === "map");
   document.querySelectorAll(".bottom-nav button").forEach((button) => {
     button.classList.toggle("active", button.dataset.view === view);
@@ -365,6 +369,7 @@ async function initMapView() {
   }
 
   window.setTimeout(() => state.map.invalidateSize(), 50);
+  window.setTimeout(() => state.map.invalidateSize(), 250);
   await loadPlaces();
 }
 
@@ -635,8 +640,13 @@ function renderList() {
     button.className = `recipe-card${recipe.recipeId === state.selectedId ? " active" : ""}`;
     button.innerHTML = `<strong>${escapeHtml(recipe.name)}</strong>`;
     button.addEventListener("click", () => {
-      state.selectedId = recipe.recipeId;
-      recipeStage.classList.add("show-detail");
+      if (state.selectedId === recipe.recipeId) {
+        state.selectedId = "";
+        recipeStage.classList.remove("show-detail");
+      } else {
+        state.selectedId = recipe.recipeId;
+        recipeStage.classList.add("show-detail");
+      }
       render();
     });
     recipeList.append(button);
@@ -692,6 +702,15 @@ function renderSteps(items) {
 function render() {
   renderList();
   renderDetail();
+  renderOverview();
+}
+
+function renderOverview() {
+  const visible = getVisibleRecipes();
+  const selected = getSelectedRecipe();
+  overviewSelected.textContent = selected?.name || "-";
+  overviewVisible.textContent = visible.length;
+  overviewTotal.textContent = state.recipes.length;
 }
 
 function formatYield(recipe) {

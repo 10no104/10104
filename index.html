@@ -6,7 +6,7 @@
     <title>레시피 스튜디오</title>
     <meta name="description" content="모바일 중심 레시피 관리 페이지" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="styles.css?v=20260712-11" />
+    <link rel="stylesheet" href="styles.css?v=20260712-12" />
   </head>
   <body>
     <main class="app-shell">
@@ -34,6 +34,20 @@
 
         <section class="recipe-stage" id="recipeStage">
           <div class="recipe-list" id="recipeList"></div>
+          <div class="recipe-overview" id="recipeOverview">
+            <div>
+              <span>선택</span>
+              <strong id="overviewSelected">-</strong>
+            </div>
+            <div>
+              <span>표시</span>
+              <strong id="overviewVisible">0</strong>
+            </div>
+            <div>
+              <span>전체</span>
+              <strong id="overviewTotal">0</strong>
+            </div>
+          </div>
 
           <article class="detail-panel" id="detailPanel">
             <button class="back-button" id="backButton" type="button">← 목록</button>
@@ -222,6 +236,6 @@
     </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script type="module" src="script.js?v=20260712-11"></script>
+    <script type="module" src="script.js?v=20260712-12"></script>
   </body>
 </html>
