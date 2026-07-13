@@ -375,6 +375,7 @@ function normalizePlace(row) {
 }
 
 function renderPlaces() {
+  if (!state.placeLayer) return;
   state.placeLayer.clearLayers();
   const bounds = [];
   const query = state.placeQuery.trim().toLowerCase();
@@ -397,7 +398,8 @@ function renderPlaces() {
   });
 
   if (state.places.length) mapStatus.textContent = places.length ? `${places.length}개` : "없음";
-  if (bounds.length) state.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+  if (bounds.length === 1) state.map.setView(bounds[0], Math.max(state.map.getZoom(), 15));
+  else if (bounds.length) state.map.fitBounds(bounds, { padding: [38, 38], maxZoom: 14 });
 }
 
 function placeIcon(type) {
@@ -641,7 +643,6 @@ document.querySelector("#backButton").addEventListener("click", () => {
 });
 
 deleteRecipeButton.addEventListener("click", handleDeleteRecipe);
-document.querySelector("#refreshButton").addEventListener("click", loadRecipes);
 locateButton.addEventListener("click", showCurrentLocation);
 convertAmount.addEventListener("input", updateConverter);
 convertFrom.addEventListener("change", updateConverter);

@@ -60,7 +60,7 @@ button:disabled {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   gap: 18px;
   align-items: end;
   min-height: 174px;
@@ -69,7 +69,8 @@ button:disabled {
   padding: 24px;
   background:
     linear-gradient(110deg, rgba(15, 21, 33, 0.98), rgba(24, 50, 62, 0.96) 62%, rgba(104, 214, 187, 0.58)),
-    repeating-linear-gradient(90deg, rgba(246, 228, 107, 0.18) 0 1px, transparent 1px 34px);
+    repeating-linear-gradient(90deg, rgba(246, 228, 107, 0.18) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 18px);
   box-shadow: var(--shadow);
 }
 
@@ -94,6 +95,17 @@ button:disabled {
 .app-header::after {
   right: 38px;
   transform: rotate(45deg);
+}
+
+.app-header h1::after {
+  display: block;
+  width: min(220px, 42vw);
+  height: 5px;
+  margin-top: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold), var(--accent), transparent);
+  content: "";
+  box-shadow: 0 0 18px rgba(246, 228, 107, 0.4);
 }
 
 .eyebrow {
@@ -123,19 +135,14 @@ h1 {
 .icon-button {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border: 1px solid rgba(246, 228, 107, 0.45);
   border-radius: 8px;
-  background: rgba(251, 255, 251, 0.13);
+  background: rgba(23, 56, 74, 0.9);
   color: var(--gold);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 900;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
 }
 
 .status-strip {
@@ -231,7 +238,7 @@ select:focus {
 
 .recipe-stage {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 292px) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
@@ -247,33 +254,57 @@ select:focus {
 }
 
 .recipe-list {
-  display: grid;
+  display: block;
   max-height: calc(100vh - 350px);
-  min-height: 300px;
+  min-height: 260px;
   overflow: auto;
+  padding: 6px;
 }
 
 .recipe-card {
+  position: relative;
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 46px;
+  min-height: 34px;
   border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.36);
   color: var(--ink);
-  padding: 9px 13px;
+  padding: 6px 10px 6px 24px;
   text-align: left;
+}
+
+.recipe-card + .recipe-card {
+  margin-top: 3px;
+}
+
+.recipe-card::before {
+  position: absolute;
+  left: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  content: "";
+  box-shadow: 0 0 0 3px rgba(103, 215, 187, 0.13);
 }
 
 .recipe-card.active,
 .recipe-card:hover {
-  background: linear-gradient(90deg, rgba(246, 228, 107, 0.28), rgba(103, 215, 187, 0.22));
+  background: linear-gradient(90deg, rgba(246, 228, 107, 0.34), rgba(103, 215, 187, 0.2));
+}
+
+.recipe-card.active::before,
+.recipe-card:hover::before {
+  background: var(--gold);
+  box-shadow: 0 0 12px rgba(246, 228, 107, 0.7);
 }
 
 .recipe-card strong {
   overflow: hidden;
-  font-size: 0.96rem;
+  font-size: 0.88rem;
+  font-weight: 850;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -446,8 +477,9 @@ li::marker {
 
 .map-toolbar {
   position: absolute;
-  top: 12px;
+  top: auto;
   right: 12px;
+  bottom: calc(var(--nav-height) + 12px);
   left: 12px;
   z-index: 500;
   display: flex;
@@ -475,6 +507,8 @@ li::marker {
   flex: 1 1 auto;
   min-width: 120px;
   min-height: 40px;
+  border-color: rgba(246, 228, 107, 0.35);
+  background: rgba(251, 255, 251, 0.96);
 }
 
 .map-toolbar button {
@@ -496,8 +530,9 @@ li::marker {
 .map-status {
   position: absolute;
   right: 12px;
-  bottom: 12px;
-  left: 12px;
+  bottom: auto;
+  left: auto;
+  top: 12px;
   z-index: 500;
   margin: 0;
   border: 1px solid rgba(246, 228, 107, 0.34);
@@ -720,7 +755,7 @@ body.map-view .map-status {
 body.map-view .leaflet-top.leaflet-left {
   top: auto;
   right: 12px;
-  bottom: calc(var(--nav-height) + 14px);
+  bottom: calc(var(--nav-height) + 82px);
   left: auto;
 }
 
@@ -767,7 +802,7 @@ body.map-view .leaflet-top.leaflet-left {
 
   .recipe-list {
     max-height: none;
-    min-height: 320px;
+    min-height: 240px;
   }
 
   .detail-panel {
@@ -804,6 +839,7 @@ body.map-view .leaflet-top.leaflet-left {
   .map-toolbar {
     display: grid;
     grid-template-columns: 1fr auto;
+    bottom: calc(var(--nav-height) + 10px);
   }
 
   .map-search {
