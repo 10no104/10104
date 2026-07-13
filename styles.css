@@ -146,22 +146,23 @@ h1 {
 }
 
 .status-strip {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
-  align-items: center;
+  display: block;
   margin: 14px 0;
   border: 1px solid rgba(103, 215, 187, 0.34);
   border-radius: 8px;
   background: rgba(251, 255, 251, 0.82);
-  padding: 10px 13px;
+  padding: 10px;
 }
 
-.status-strip strong {
-  min-width: 42px;
+.status-strip label {
+  gap: 6px;
+}
+
+.status-strip small {
+  margin-left: 6px;
   color: var(--accent-dark);
-  font-size: 1.45rem;
-  line-height: 1;
+  font-size: 0.75rem;
+  font-weight: 900;
 }
 
 .status-strip span,
@@ -252,8 +253,8 @@ select:focus {
 
 .recipe-list {
   display: flex;
-  gap: 6px;
-  min-height: 48px;
+  gap: 9px;
+  min-height: 118px;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 7px;
@@ -262,55 +263,19 @@ select:focus {
 
 .recipe-card {
   position: relative;
-  display: flex;
+  display: grid;
   flex: 0 0 auto;
-  align-items: center;
-  width: min(190px, 54vw);
-  min-height: 34px;
+  align-content: start;
+  gap: 5px;
+  width: min(220px, 68vw);
+  min-height: 104px;
   border: 0;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.36);
   color: var(--ink);
-  padding: 6px 10px 6px 24px;
+  padding: 12px 12px 12px 26px;
   text-align: left;
   scroll-snap-align: start;
-}
-
-.recipe-overview {
-  display: grid;
-  grid-template-columns: 1.4fr 0.8fr 0.8fr;
-  gap: 8px;
-}
-
-.recipe-overview div {
-  min-height: 74px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(15, 21, 33, 0.92), rgba(23, 56, 74, 0.88)),
-    repeating-linear-gradient(90deg, rgba(246, 228, 107, 0.14) 0 1px, transparent 1px 28px);
-  color: white;
-  padding: 12px;
-}
-
-.recipe-overview span,
-.recipe-overview strong {
-  display: block;
-}
-
-.recipe-overview span {
-  color: var(--gold);
-  font-size: 0.72rem;
-  font-weight: 900;
-}
-
-.recipe-overview strong {
-  overflow: hidden;
-  margin-top: 8px;
-  font-size: clamp(1.1rem, 4vw, 1.65rem);
-  line-height: 1.05;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .recipe-card + .recipe-card {
@@ -319,6 +284,7 @@ select:focus {
 
 .recipe-card::before {
   position: absolute;
+  top: 16px;
   left: 10px;
   width: 6px;
   height: 6px;
@@ -341,7 +307,7 @@ select:focus {
 
 .recipe-card strong {
   overflow: hidden;
-  font-size: 0.88rem;
+  font-size: 0.98rem;
   font-weight: 850;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -350,7 +316,14 @@ select:focus {
 
 .recipe-card span {
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.recipe-card em {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-style: normal;
 }
 
 .detail-panel {
@@ -956,16 +929,7 @@ body.map-view .leaflet-top.leaflet-left {
   }
 
   .recipe-list {
-    min-height: 48px;
-  }
-
-  .recipe-overview {
-    grid-template-columns: 1fr 0.72fr 0.72fr;
-  }
-
-  .recipe-overview div {
-    min-height: 64px;
-    padding: 10px;
+    min-height: 118px;
   }
 
   .detail-panel {

@@ -62,15 +62,11 @@ const state = {
 };
 
 const sectionTitle = document.querySelector("#sectionTitle");
-const statusText = document.querySelector("#statusText");
 const recipeCount = document.querySelector("#recipeCount");
 const searchInput = document.querySelector("#searchInput");
 const tagRow = document.querySelector("#tagRow");
 const recipeStage = document.querySelector("#recipeStage");
 const recipeList = document.querySelector("#recipeList");
-const overviewSelected = document.querySelector("#overviewSelected");
-const overviewVisible = document.querySelector("#overviewVisible");
-const overviewTotal = document.querySelector("#overviewTotal");
 const emptyDetail = document.querySelector("#emptyDetail");
 const recipeDetail = document.querySelector("#recipeDetail");
 const detailType = document.querySelector("#detailType");
@@ -312,9 +308,9 @@ function safeJson(value, fallback) {
   }
 }
 
-function setStatus(message, count) {
-  statusText.textContent = message;
-  recipeCount.textContent = count;
+function setStatus(_message, count) {
+  const total = Number.isFinite(Number(count)) ? Number(count) : state.recipes.length;
+  recipeCount.textContent = `${total}개`;
 }
 
 function setView(view) {
@@ -638,7 +634,11 @@ function renderList() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `recipe-card${recipe.recipeId === state.selectedId ? " active" : ""}`;
-    button.innerHTML = `<strong>${escapeHtml(recipe.name)}</strong>`;
+    button.innerHTML = `
+      <strong>${escapeHtml(recipe.name)}</strong>
+      <span>${escapeHtml(recipe.category || recipe.recipeType || "-")}</span>
+      <em>${escapeHtml(formatYield(recipe))} · ${escapeHtml(recipe.updatedAt || "-")}</em>
+    `;
     button.addEventListener("click", () => {
       if (state.selectedId === recipe.recipeId) {
         state.selectedId = "";
@@ -702,15 +702,6 @@ function renderSteps(items) {
 function render() {
   renderList();
   renderDetail();
-  renderOverview();
-}
-
-function renderOverview() {
-  const visible = getVisibleRecipes();
-  const selected = getSelectedRecipe();
-  overviewSelected.textContent = selected?.name || "-";
-  overviewVisible.textContent = visible.length;
-  overviewTotal.textContent = state.recipes.length;
 }
 
 function formatYield(recipe) {
@@ -829,7 +820,6 @@ async function handleDeleteRecipe() {
   if (!recipe) return;
   if (!confirm(`삭제할까요?\n${recipe.name}`)) return;
 
-  const previousStatus = statusText.textContent;
   setStatus("삭제 중", state.recipes.length);
 
   try {
@@ -840,7 +830,7 @@ async function handleDeleteRecipe() {
     setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
     render();
   } catch (error) {
-    setStatus(previousStatus || "오류", state.recipes.length);
+    setStatus("오류", state.recipes.length);
     const message = error.message === "지원하지 않는 action입니다." ? "Apps Script 재배포 필요" : error.message;
     alert(message);
   }
