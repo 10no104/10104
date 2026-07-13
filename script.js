@@ -4,17 +4,14 @@ const VIEWS = {
   baking: {
     title: "베이킹",
     type: "baking",
-    tags: ["전체", "빵", "쿠키", "케이크", "타르트", "발효빵"],
   },
   cocktail: {
     title: "칵테일",
     type: "cocktail",
-    tags: ["전체", "진", "럼", "위스키", "보드카", "무알코올"],
   },
   cooking: {
     title: "요리",
     type: "cooking",
-    tags: ["전체", "한식", "파스타", "소스", "찌개", "반찬"],
   },
 };
 
@@ -50,7 +47,6 @@ const state = {
   query: "",
   placeQuery: "",
   placeResults: [],
-  tag: "전체",
   sort: "updatedAt",
   apiUrl: CONFIG.APPS_SCRIPT_URL || "",
   places: [],
@@ -64,7 +60,6 @@ const state = {
 const sectionTitle = document.querySelector("#sectionTitle");
 const recipeCount = document.querySelector("#recipeCount");
 const searchInput = document.querySelector("#searchInput");
-const tagRow = document.querySelector("#tagRow");
 const recipeStage = document.querySelector("#recipeStage");
 const recipeList = document.querySelector("#recipeList");
 const emptyDetail = document.querySelector("#emptyDetail");
@@ -316,7 +311,6 @@ function setStatus(_message, count) {
 function setView(view) {
   state.view = view;
   state.query = "";
-  state.tag = "전체";
   searchInput.value = "";
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   document.body.classList.toggle("map-view", view === "map");
@@ -329,7 +323,6 @@ function setView(view) {
     document.querySelector("#mapScreen").classList.remove("active");
     document.querySelector("#toolsScreen").classList.remove("active");
     sectionTitle.textContent = VIEWS[view].title;
-    renderTags();
     loadRecipes();
     updateHash();
     return;
@@ -585,30 +578,10 @@ function showCurrentLocation() {
   );
 }
 
-function renderTags() {
-  tagRow.innerHTML = "";
-  VIEWS[state.view].tags.forEach((tag) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = tag;
-    button.classList.toggle("active", state.tag === tag);
-    button.addEventListener("click", () => {
-      state.tag = tag;
-      state.selectedId = "";
-      recipeStage.classList.remove("show-detail");
-      render();
-      renderTags();
-    });
-    tagRow.append(button);
-  });
-}
-
 function getVisibleRecipes() {
   const query = state.query.trim().toLowerCase();
   const recipes = state.recipes.filter((recipe) => {
-    const matchesQuery = !query || String(recipe.name || "").toLowerCase().includes(query);
-    const matchesTag = state.tag === "전체" || recipe.category === state.tag || recipe.tags?.includes(state.tag);
-    return matchesQuery && matchesTag;
+    return !query || String(recipe.name || "").toLowerCase().includes(query);
   });
 
   return recipes.sort((a, b) => {
@@ -634,11 +607,7 @@ function renderList() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `recipe-card${recipe.recipeId === state.selectedId ? " active" : ""}`;
-    button.innerHTML = `
-      <strong>${escapeHtml(recipe.name)}</strong>
-      <span>${escapeHtml(recipe.category || recipe.recipeType || "-")}</span>
-      <em>${escapeHtml(formatYield(recipe))} · ${escapeHtml(recipe.updatedAt || "-")}</em>
-    `;
+    button.innerHTML = `<strong>${escapeHtml(recipe.name)}</strong>`;
     button.addEventListener("click", () => {
       if (state.selectedId === recipe.recipeId) {
         state.selectedId = "";
