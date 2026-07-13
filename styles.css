@@ -181,10 +181,8 @@ label,
 }
 
 .toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 160px;
-  gap: 10px;
-  margin-bottom: 12px;
+  display: block;
+  margin-bottom: 10px;
 }
 
 label {
@@ -238,8 +236,7 @@ select:focus {
 
 .recipe-stage {
   display: grid;
-  grid-template-columns: minmax(220px, 292px) minmax(0, 1fr);
-  gap: 14px;
+  gap: 10px;
   align-items: start;
 }
 
@@ -254,18 +251,21 @@ select:focus {
 }
 
 .recipe-list {
-  display: block;
-  max-height: calc(100vh - 350px);
-  min-height: 260px;
-  overflow: auto;
-  padding: 6px;
+  display: flex;
+  gap: 6px;
+  min-height: 48px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 7px;
+  scroll-snap-type: x proximity;
 }
 
 .recipe-card {
   position: relative;
   display: flex;
   align-items: center;
-  width: 100%;
+  flex: 0 0 auto;
+  width: min(190px, 52vw);
   min-height: 34px;
   border: 0;
   border-radius: 7px;
@@ -273,10 +273,11 @@ select:focus {
   color: var(--ink);
   padding: 6px 10px 6px 24px;
   text-align: left;
+  scroll-snap-align: start;
 }
 
 .recipe-card + .recipe-card {
-  margin-top: 3px;
+  margin-top: 0;
 }
 
 .recipe-card::before {
@@ -316,7 +317,7 @@ select:focus {
 }
 
 .detail-panel {
-  min-height: 540px;
+  min-height: 420px;
   padding: 14px;
 }
 
@@ -335,7 +336,7 @@ select:focus {
 .empty-detail {
   display: grid;
   align-content: center;
-  min-height: 500px;
+  min-height: 380px;
   border: 1px dashed var(--line);
   border-radius: 8px;
   background:
@@ -477,9 +478,9 @@ li::marker {
 
 .map-toolbar {
   position: absolute;
-  top: auto;
+  top: calc(env(safe-area-inset-top) + 10px);
   right: 12px;
-  bottom: calc(var(--nav-height) + 12px);
+  bottom: auto;
   left: 12px;
   z-index: 500;
   display: flex;
@@ -496,7 +497,8 @@ li::marker {
 .place-results {
   position: absolute;
   right: 12px;
-  bottom: calc(var(--nav-height) + 78px);
+  top: calc(env(safe-area-inset-top) + 82px);
+  bottom: auto;
   left: 12px;
   z-index: 1800;
   display: grid;
@@ -561,7 +563,7 @@ li::marker {
 }
 
 .map-toolbar > div {
-  min-width: 116px;
+  min-width: 92px;
 }
 
 .map-toolbar h2 {
@@ -607,7 +609,7 @@ li::marker {
   right: 12px;
   bottom: auto;
   left: auto;
-  top: 12px;
+  top: calc(env(safe-area-inset-top) + 72px);
   z-index: 500;
   margin: 0;
   border: 1px solid rgba(246, 228, 107, 0.34);
@@ -654,6 +656,19 @@ li::marker {
   color: var(--gold);
   padding: 0 10px;
   text-decoration: none;
+  font-weight: 900;
+}
+
+.place-delete-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  margin-left: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: #da6f86;
+  color: white;
+  padding: 0 10px;
   font-weight: 900;
 }
 
@@ -829,9 +844,9 @@ body.map-view .map-status {
 }
 
 body.map-view .leaflet-top.leaflet-left {
-  top: auto;
+  top: calc(env(safe-area-inset-top) + 90px);
   right: 12px;
-  bottom: calc(var(--nav-height) + 88px);
+  bottom: auto;
   left: auto;
 }
 
@@ -867,7 +882,6 @@ body.map-view .leaflet-top.leaflet-left {
   }
 
   .toolbar,
-  .recipe-stage,
   .tool-grid {
     display: block;
   }
@@ -877,8 +891,7 @@ body.map-view .leaflet-top.leaflet-left {
   }
 
   .recipe-list {
-    max-height: none;
-    min-height: 240px;
+    min-height: 48px;
   }
 
   .detail-panel {
@@ -887,7 +900,6 @@ body.map-view .leaflet-top.leaflet-left {
     box-shadow: none;
   }
 
-  .recipe-stage.show-detail .recipe-list,
   .recipe-stage.show-detail ~ .fab {
     display: none;
   }
@@ -896,8 +908,12 @@ body.map-view .leaflet-top.leaflet-left {
     display: block;
   }
 
+  .recipe-stage.show-detail .detail-panel {
+    display: block;
+  }
+
   .back-button {
-    display: inline-flex;
+    display: none;
     align-items: center;
   }
 
@@ -909,13 +925,14 @@ body.map-view .leaflet-top.leaflet-left {
 
   .map-shell,
   .places-map {
-    min-height: calc(100vh - var(--nav-height) - 24px);
+    min-height: calc(100dvh - var(--nav-height));
   }
 
   .map-toolbar {
     display: grid;
     grid-template-columns: 1fr auto auto;
-    bottom: calc(var(--nav-height) + 10px);
+    top: calc(env(safe-area-inset-top) + 8px);
+    bottom: auto;
   }
 
   .map-search {
@@ -924,7 +941,8 @@ body.map-view .leaflet-top.leaflet-left {
   }
 
   .place-results {
-    bottom: calc(var(--nav-height) + 118px);
+    top: calc(env(safe-area-inset-top) + 116px);
+    bottom: auto;
   }
 
   .tool-grid .info-card + .info-card {

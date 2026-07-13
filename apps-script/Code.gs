@@ -118,6 +118,7 @@ function handleRequest_(request) {
     if (action === "createRecipe") return ok_(createRecipe_(parseData_(request.data || request)));
     if (action === "deleteRecipe") return ok_(deleteRecipe_(request.recipeId));
     if (action === "createPlace") return ok_(createPlace_(parseData_(request.data || request)));
+    if (action === "deletePlace") return ok_(deletePlace_(request.placeId));
     if (action === "setupSpreadsheet") return ok_(setupSpreadsheet());
     return fail_("UNKNOWN_ACTION", "지원하지 않는 action입니다.");
   } catch (error) {
@@ -260,6 +261,38 @@ function createPlace_(data) {
 
     appendObject_(ss, SHEETS.REFERENCE_DATA, place);
     return place;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deletePlace_(placeId) {
+  if (!placeId) throw new Error("placeId가 필요합니다.");
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEETS.REFERENCE_DATA);
+    if (!sheet) throw new Error("App_ReferenceData 시트를 찾을 수 없습니다.");
+
+    const values = sheet.getDataRange().getValues();
+    if (values.length < 2) throw new Error("장소를 찾을 수 없습니다.");
+
+    const headers = values[0].map(String);
+    const referenceIdColumn = headers.indexOf("referenceId") + 1;
+    const isActiveColumn = headers.indexOf("isActive") + 1;
+    if (!referenceIdColumn || !isActiveColumn) throw new Error("필수 컬럼을 찾을 수 없습니다.");
+
+    for (let rowIndex = 2; rowIndex <= values.length; rowIndex += 1) {
+      if (String(values[rowIndex - 1][referenceIdColumn - 1]) === String(placeId)) {
+        sheet.getRange(rowIndex, isActiveColumn).setValue("false");
+        return { placeId, isActive: false };
+      }
+    }
+
+    throw new Error("장소를 찾을 수 없습니다.");
   } finally {
     lock.releaseLock();
   }

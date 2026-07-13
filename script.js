@@ -65,7 +65,6 @@ const sectionTitle = document.querySelector("#sectionTitle");
 const statusText = document.querySelector("#statusText");
 const recipeCount = document.querySelector("#recipeCount");
 const searchInput = document.querySelector("#searchInput");
-const sortSelect = document.querySelector("#sortSelect");
 const tagRow = document.querySelector("#tagRow");
 const recipeStage = document.querySelector("#recipeStage");
 const recipeList = document.querySelector("#recipeList");
@@ -154,6 +153,13 @@ async function createPlace(place) {
   if (!state.apiUrl) throw new Error("URL 필요");
   const payload = await jsonp(buildApiUrl("createPlace", { data: JSON.stringify(place) }));
   if (!payload.ok) throw new Error(payload.error?.message || "저장 실패");
+  return payload.data;
+}
+
+async function deletePlace(placeId) {
+  if (!state.apiUrl) throw new Error("URL 필요");
+  const payload = await jsonp(buildApiUrl("deletePlace", { placeId }));
+  if (!payload.ok) throw new Error(payload.error?.message || "삭제 실패");
   return payload.data;
 }
 
@@ -360,7 +366,11 @@ async function loadPlaces() {
 
   try {
     const rows = await readAppSheet(APP_SHEETS.referenceData);
-    state.places = rows.filter((row) => String(row.category).toLowerCase() === "place").map(normalizePlace).filter(Boolean);
+    state.places = rows
+      .filter((row) => String(row.category).toLowerCase() === "place")
+      .filter((row) => String(row.isActive).toLowerCase() !== "false")
+      .map(normalizePlace)
+      .filter(Boolean);
     mapStatus.textContent = state.places.length ? `${state.places.length}개` : "장소 없음";
   } catch {
     state.places = [];
@@ -399,8 +409,14 @@ function renderPlaces() {
         <strong>${escapeHtml(place.name)}</strong>
         ${place.note ? `<p>${escapeHtml(place.note)}</p>` : ""}
         <a href="${escapeHtml(place.googleMapsUrl)}" target="_blank" rel="noreferrer">Google Maps 열기</a>
+        <button type="button" class="place-delete-button">삭제</button>
       </div>
     `);
+    marker.on("popupopen", () => {
+      const popup = marker.getPopup()?.getElement();
+      const button = popup?.querySelector(".place-delete-button");
+      if (button) button.addEventListener("click", () => handleDeletePlace(place));
+    });
     marker.addTo(state.placeLayer);
     bounds.push([place.lat, place.lng]);
   });
@@ -489,9 +505,10 @@ async function addSearchPlace(index) {
   if (!result) return;
 
   const type = placeTypeSelect.value || "기타";
+  const note = prompt("장소 메모", "") || "";
   const place = {
     name: result.name,
-    note: result.address,
+    note: note.trim(),
     type,
     lat: result.lat,
     lng: result.lng,
@@ -746,11 +763,6 @@ mapSearchInput.addEventListener("input", (event) => {
   state.searchTimer = window.setTimeout(() => searchPlaces(state.placeQuery), 450);
 });
 
-sortSelect.addEventListener("change", (event) => {
-  state.sort = event.target.value;
-  render();
-});
-
 document.querySelector("#backButton").addEventListener("click", () => {
   recipeStage.classList.remove("show-detail");
 });
@@ -795,6 +807,23 @@ async function handleDeleteRecipe() {
     setStatus(previousStatus || "오류", state.recipes.length);
     const message = error.message === "지원하지 않는 action입니다." ? "Apps Script 재배포 필요" : error.message;
     alert(message);
+  }
+}
+
+async function handleDeletePlace(place) {
+  if (!place?.placeId) return;
+  if (!confirm(`삭제할까요?\n${place.name}`)) return;
+
+  mapStatus.textContent = "삭제 중";
+
+  try {
+    await deletePlace(place.placeId);
+    state.places = state.places.filter((item) => item.placeId !== place.placeId);
+    if (state.map) state.map.closePopup();
+    renderPlaces();
+    mapStatus.textContent = state.places.length ? `${state.places.length}개` : "장소 없음";
+  } catch (error) {
+    mapStatus.textContent = error.message;
   }
 }
 
