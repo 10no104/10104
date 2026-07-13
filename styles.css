@@ -493,6 +493,73 @@ li::marker {
   backdrop-filter: blur(12px);
 }
 
+.place-results {
+  position: absolute;
+  right: 12px;
+  bottom: calc(var(--nav-height) + 78px);
+  left: 12px;
+  z-index: 1800;
+  display: grid;
+  max-height: min(38vh, 260px);
+  overflow: auto;
+  border: 1px solid rgba(246, 228, 107, 0.34);
+  border-radius: 8px;
+  background: rgba(15, 21, 33, 0.9);
+  padding: 8px;
+  gap: 6px;
+  backdrop-filter: blur(14px);
+}
+
+.place-results[hidden] {
+  display: none;
+}
+
+.place-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.place-result-main,
+.place-add-button {
+  border: 1px solid rgba(246, 228, 107, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.place-result-main {
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  padding: 7px 9px;
+  text-align: left;
+}
+
+.place-result-main strong,
+.place-result-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-result-main strong {
+  font-size: 0.88rem;
+}
+
+.place-result-main span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.74rem;
+}
+
+.place-add-button {
+  min-width: 56px;
+  background: var(--gold);
+  color: var(--accent-dark);
+  font-weight: 900;
+}
+
 .map-toolbar > div {
   min-width: 116px;
 }
@@ -506,6 +573,14 @@ li::marker {
 .map-search {
   flex: 1 1 auto;
   min-width: 120px;
+  min-height: 40px;
+  border-color: rgba(246, 228, 107, 0.35);
+  background: rgba(251, 255, 251, 0.96);
+}
+
+.place-type-select {
+  width: auto;
+  min-width: 88px;
   min-height: 40px;
   border-color: rgba(246, 228, 107, 0.35);
   background: rgba(251, 255, 251, 0.96);
@@ -748,6 +823,7 @@ body.map-view .map-shell {
 }
 
 body.map-view .map-toolbar,
+body.map-view .place-results,
 body.map-view .map-status {
   z-index: 1800;
 }
@@ -755,7 +831,7 @@ body.map-view .map-status {
 body.map-view .leaflet-top.leaflet-left {
   top: auto;
   right: 12px;
-  bottom: calc(var(--nav-height) + 82px);
+  bottom: calc(var(--nav-height) + 88px);
   left: auto;
 }
 
@@ -838,13 +914,17 @@ body.map-view .leaflet-top.leaflet-left {
 
   .map-toolbar {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     bottom: calc(var(--nav-height) + 10px);
   }
 
   .map-search {
     grid-column: 1 / -1;
     order: 3;
+  }
+
+  .place-results {
+    bottom: calc(var(--nav-height) + 118px);
   }
 
   .tool-grid .info-card + .info-card {

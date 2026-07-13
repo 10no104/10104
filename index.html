@@ -6,7 +6,7 @@
     <title>레시피 스튜디오</title>
     <meta name="description" content="모바일 중심 레시피 관리 페이지" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="styles.css?v=20260712-6" />
+    <link rel="stylesheet" href="styles.css?v=20260712-7" />
   </head>
   <body>
     <main class="app-shell">
@@ -98,8 +98,16 @@
               <h2>저장한 장소</h2>
             </div>
             <input id="mapSearchInput" class="map-search" type="search" autocomplete="off" aria-label="장소 검색" />
+            <select id="placeTypeSelect" class="place-type-select" aria-label="장소 종류">
+              <option value="음식점">음식점</option>
+              <option value="관광지">관광지</option>
+              <option value="숙소">숙소</option>
+              <option value="교통">교통</option>
+              <option value="기타">기타</option>
+            </select>
             <button id="locateButton" type="button">현재 위치</button>
           </div>
+          <div class="place-results" id="placeResults" hidden></div>
           <div id="placesMap" class="places-map" role="application" aria-label="저장한 장소 지도"></div>
           <p class="map-status" id="mapStatus">불러오는 중</p>
         </div>
@@ -221,6 +229,6 @@
     </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script type="module" src="script.js?v=20260712-6"></script>
+    <script type="module" src="script.js?v=20260712-7"></script>
   </body>
 </html>

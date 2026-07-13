@@ -49,13 +49,16 @@ const state = {
   selectedId: "",
   query: "",
   placeQuery: "",
+  placeResults: [],
   tag: "전체",
   sort: "updatedAt",
   apiUrl: CONFIG.APPS_SCRIPT_URL || "",
   places: [],
   map: null,
   placeLayer: null,
+  searchLayer: null,
   locationMarker: null,
+  searchTimer: 0,
 };
 
 const sectionTitle = document.querySelector("#sectionTitle");
@@ -83,6 +86,8 @@ const latestFeedback = document.querySelector("#latestFeedback");
 const placesMap = document.querySelector("#placesMap");
 const mapStatus = document.querySelector("#mapStatus");
 const mapSearchInput = document.querySelector("#mapSearchInput");
+const placeTypeSelect = document.querySelector("#placeTypeSelect");
+const placeResults = document.querySelector("#placeResults");
 const locateButton = document.querySelector("#locateButton");
 const convertAmount = document.querySelector("#convertAmount");
 const convertFrom = document.querySelector("#convertFrom");
@@ -142,6 +147,13 @@ async function deleteRecipe(recipeId) {
   if (!state.apiUrl) throw new Error("URL 필요");
   const payload = await jsonp(buildApiUrl("deleteRecipe", { recipeId }));
   if (!payload.ok) throw new Error(payload.error?.message || "삭제 실패");
+  return payload.data;
+}
+
+async function createPlace(place) {
+  if (!state.apiUrl) throw new Error("URL 필요");
+  const payload = await jsonp(buildApiUrl("createPlace", { data: JSON.stringify(place) }));
+  if (!payload.ok) throw new Error(payload.error?.message || "저장 실패");
   return payload.data;
 }
 
@@ -336,6 +348,7 @@ async function initMapView() {
       maxZoom: 19,
     }).addTo(state.map);
     state.placeLayer = L.layerGroup().addTo(state.map);
+    state.searchLayer = L.layerGroup().addTo(state.map);
   }
 
   window.setTimeout(() => state.map.invalidateSize(), 50);
@@ -378,13 +391,8 @@ function renderPlaces() {
   if (!state.placeLayer) return;
   state.placeLayer.clearLayers();
   const bounds = [];
-  const query = state.placeQuery.trim().toLowerCase();
-  const places = state.places.filter((place) => {
-    if (!query) return true;
-    return [place.name, place.note, place.type].some((value) => String(value || "").toLowerCase().includes(query));
-  });
 
-  places.forEach((place) => {
+  state.places.forEach((place) => {
     const marker = L.marker([place.lat, place.lng], { icon: placeIcon(place.type) });
     marker.bindPopup(`
       <div class="place-popup">
@@ -397,9 +405,113 @@ function renderPlaces() {
     bounds.push([place.lat, place.lng]);
   });
 
-  if (state.places.length) mapStatus.textContent = places.length ? `${places.length}개` : "없음";
+  if (state.places.length) mapStatus.textContent = `${state.places.length}개`;
   if (bounds.length === 1) state.map.setView(bounds[0], Math.max(state.map.getZoom(), 15));
   else if (bounds.length) state.map.fitBounds(bounds, { padding: [38, 38], maxZoom: 14 });
+}
+
+function renderPlaceResults() {
+  placeResults.innerHTML = "";
+  placeResults.hidden = !state.placeResults.length;
+
+  state.placeResults.forEach((place, index) => {
+    const item = document.createElement("div");
+    item.className = "place-result";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "place-result-main";
+    button.innerHTML = `<strong>${escapeHtml(place.name)}</strong><span>${escapeHtml(place.address)}</span>`;
+    button.addEventListener("click", () => previewSearchPlace(place));
+
+    const addButton = document.createElement("button");
+    addButton.type = "button";
+    addButton.className = "place-add-button";
+    addButton.textContent = "추가";
+    addButton.addEventListener("click", () => addSearchPlace(index));
+
+    item.append(button, addButton);
+    placeResults.append(item);
+  });
+}
+
+function previewSearchPlace(place) {
+  if (!state.searchLayer) return;
+  state.searchLayer.clearLayers();
+  const marker = L.marker([place.lat, place.lng], { icon: placeIcon(placeTypeSelect.value) });
+  marker.bindPopup(`<div class="place-popup"><strong>${escapeHtml(place.name)}</strong></div>`);
+  marker.addTo(state.searchLayer).openPopup();
+  state.map.setView([place.lat, place.lng], 16);
+}
+
+async function searchPlaces(query) {
+  const term = query.trim();
+  if (term.length < 2) {
+    state.placeResults = [];
+    renderPlaceResults();
+    mapStatus.textContent = state.places.length ? `${state.places.length}개` : "장소 없음";
+    return;
+  }
+
+  mapStatus.textContent = "검색 중";
+
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/search");
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("limit", "5");
+    url.searchParams.set("accept-language", "ko");
+    url.searchParams.set("q", term);
+    const response = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("SEARCH_FAILED");
+
+    const results = await response.json();
+    state.placeResults = results
+      .map((result) => ({
+        name: result.name || result.display_name?.split(",")[0] || term,
+        address: result.display_name || "",
+        lat: Number(result.lat),
+        lng: Number(result.lon),
+      }))
+      .filter((result) => Number.isFinite(result.lat) && Number.isFinite(result.lng));
+
+    renderPlaceResults();
+    mapStatus.textContent = state.placeResults.length ? `${state.placeResults.length}개` : "검색 없음";
+    if (state.placeResults.length === 1) previewSearchPlace(state.placeResults[0]);
+  } catch {
+    state.placeResults = [];
+    renderPlaceResults();
+    mapStatus.textContent = "검색 오류";
+  }
+}
+
+async function addSearchPlace(index) {
+  const result = state.placeResults[index];
+  if (!result) return;
+
+  const type = placeTypeSelect.value || "기타";
+  const place = {
+    name: result.name,
+    note: result.address,
+    type,
+    lat: result.lat,
+    lng: result.lng,
+    googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`,
+  };
+
+  mapStatus.textContent = "저장 중";
+
+  try {
+    const saved = await createPlace(place);
+    state.places.push(normalizePlace(saved) || place);
+    state.placeResults = [];
+    mapSearchInput.value = "";
+    if (state.searchLayer) state.searchLayer.clearLayers();
+    renderPlaceResults();
+    renderPlaces();
+    mapStatus.textContent = `${state.places.length}개`;
+  } catch (error) {
+    mapStatus.textContent = error.message;
+  }
 }
 
 function placeIcon(type) {
@@ -630,7 +742,8 @@ searchInput.addEventListener("input", (event) => {
 
 mapSearchInput.addEventListener("input", (event) => {
   state.placeQuery = event.target.value;
-  if (state.map) renderPlaces();
+  window.clearTimeout(state.searchTimer);
+  state.searchTimer = window.setTimeout(() => searchPlaces(state.placeQuery), 450);
 });
 
 sortSelect.addEventListener("change", (event) => {

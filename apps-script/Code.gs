@@ -117,6 +117,7 @@ function handleRequest_(request) {
     if (action === "getRecipe") return ok_(getRecipe_(request.recipeId));
     if (action === "createRecipe") return ok_(createRecipe_(parseData_(request.data || request)));
     if (action === "deleteRecipe") return ok_(deleteRecipe_(request.recipeId));
+    if (action === "createPlace") return ok_(createPlace_(parseData_(request.data || request)));
     if (action === "setupSpreadsheet") return ok_(setupSpreadsheet());
     return fail_("UNKNOWN_ACTION", "지원하지 않는 action입니다.");
   } catch (error) {
@@ -220,6 +221,45 @@ function deleteRecipe_(recipeId) {
     }
 
     throw new Error("레시피를 찾을 수 없습니다.");
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function createPlace_(data) {
+  if (!data || !data.name) throw new Error("장소명이 필요합니다.");
+
+  const lat = Number(data.lat);
+  const lng = Number(data.lng);
+  if (!isFinite(lat) || !isFinite(lng)) throw new Error("좌표가 필요합니다.");
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    setupSpreadsheet();
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const type = String(data.type || "기타").trim();
+    const place = {
+      referenceId: Utilities.getUuid(),
+      category: "place",
+      name: String(data.name || "").trim(),
+      value: JSON.stringify({
+        lat,
+        lng,
+        type,
+        googleMapsUrl: String(data.googleMapsUrl || "https://www.google.com/maps/search/?api=1&query=" + lat + "," + lng).trim(),
+      }),
+      unit: "",
+      source: String(data.source || "map-search").trim(),
+      note: String(data.note || "").trim(),
+      sortOrder: "",
+      isActive: "true",
+    };
+
+    appendObject_(ss, SHEETS.REFERENCE_DATA, place);
+    return place;
   } finally {
     lock.releaseLock();
   }
