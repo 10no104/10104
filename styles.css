@@ -254,7 +254,7 @@ select:focus {
 .recipe-list {
   display: flex;
   gap: 9px;
-  min-height: 118px;
+  min-height: 148px;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 7px;
@@ -266,14 +266,14 @@ select:focus {
   display: grid;
   flex: 0 0 auto;
   align-content: start;
-  gap: 5px;
-  width: min(220px, 68vw);
-  min-height: 104px;
+  gap: 7px;
+  width: min(154px, 42vw);
+  min-height: 134px;
   border: 0;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.36);
   color: var(--ink);
-  padding: 12px 12px 12px 26px;
+  padding: 14px 12px 12px 26px;
   text-align: left;
   scroll-snap-align: start;
 }
@@ -284,7 +284,7 @@ select:focus {
 
 .recipe-card::before {
   position: absolute;
-  top: 16px;
+  top: 18px;
   left: 10px;
   width: 6px;
   height: 6px;
@@ -307,27 +307,29 @@ select:focus {
 
 .recipe-card strong {
   overflow: hidden;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   font-weight: 850;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.22;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .recipe-card span {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 850;
 }
 
 .recipe-card em {
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-style: normal;
+  line-height: 1.25;
 }
 
 .detail-panel {
-  max-height: calc(100dvh - var(--nav-height) - 380px);
+  max-height: calc(100dvh - var(--nav-height) - 400px);
   min-height: 260px;
   overflow: auto;
   padding: 14px;
@@ -929,7 +931,7 @@ body.map-view .leaflet-top.leaflet-left {
   }
 
   .recipe-list {
-    min-height: 118px;
+    min-height: 148px;
   }
 
   .detail-panel {
