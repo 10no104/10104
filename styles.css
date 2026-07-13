@@ -251,9 +251,12 @@ select:focus {
 }
 
 .recipe-list {
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(150px, 190px);
+  grid-template-rows: repeat(3, 34px);
   gap: 6px;
-  min-height: 48px;
+  min-height: 132px;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 7px;
@@ -264,8 +267,7 @@ select:focus {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 0 0 auto;
-  width: min(190px, 52vw);
+  width: 100%;
   min-height: 34px;
   border: 0;
   border-radius: 7px;
@@ -647,6 +649,20 @@ li::marker {
   line-height: 1.45;
 }
 
+.place-note-input {
+  width: 100%;
+  min-height: 72px;
+  margin: 8px 0 10px;
+  border: 1px solid rgba(77, 129, 148, 0.22);
+  border-radius: 8px;
+  background: rgba(251, 255, 251, 0.96);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.4;
+  padding: 8px;
+  resize: vertical;
+}
+
 .place-popup a {
   display: inline-flex;
   align-items: center;
@@ -659,6 +675,7 @@ li::marker {
   font-weight: 900;
 }
 
+.place-note-save-button,
 .place-delete-button {
   display: inline-flex;
   align-items: center;
@@ -670,6 +687,12 @@ li::marker {
   color: white;
   padding: 0 10px;
   font-weight: 900;
+}
+
+.place-note-save-button {
+  margin-left: 6px;
+  background: var(--accent-dark);
+  color: var(--gold);
 }
 
 .tool-grid {
@@ -891,7 +914,9 @@ body.map-view .leaflet-top.leaflet-left {
   }
 
   .recipe-list {
-    min-height: 48px;
+    grid-auto-columns: minmax(128px, 44vw);
+    grid-template-rows: repeat(3, 34px);
+    min-height: 132px;
   }
 
   .detail-panel {

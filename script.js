@@ -163,6 +163,13 @@ async function deletePlace(placeId) {
   return payload.data;
 }
 
+async function updatePlaceNote(placeId, note) {
+  if (!state.apiUrl) throw new Error("URL 필요");
+  const payload = await jsonp(buildApiUrl("updatePlaceNote", { placeId, note }));
+  if (!payload.ok) throw new Error(payload.error?.message || "저장 실패");
+  return payload.data;
+}
+
 async function loadFromSpreadsheet(recipeType) {
   if (!CONFIG.SPREADSHEET_ID) throw new Error("SPREADSHEET_ID 없음");
 
@@ -390,10 +397,11 @@ function normalizePlace(row) {
     placeId: row.referenceId || parsed.placeId || `${lat},${lng}`,
     name: row.name || parsed.name || "장소",
     note: row.note || parsed.note || "",
+    address: parsed.address || "",
     type: parsed.type || parsed.category || "기타",
     lat,
     lng,
-    googleMapsUrl: parsed.googleMapsUrl || parsed.url || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    googleMapsUrl: parsed.googleMapsUrl || parsed.url || buildGoogleMapsSearchUrl(row.name || parsed.name || "장소", parsed.address || row.note || ""),
   };
 }
 
@@ -407,15 +415,19 @@ function renderPlaces() {
     marker.bindPopup(`
       <div class="place-popup">
         <strong>${escapeHtml(place.name)}</strong>
-        ${place.note ? `<p>${escapeHtml(place.note)}</p>` : ""}
+        <textarea class="place-note-input" rows="3">${escapeHtml(place.note || "")}</textarea>
         <a href="${escapeHtml(place.googleMapsUrl)}" target="_blank" rel="noreferrer">Google Maps 열기</a>
+        <button type="button" class="place-note-save-button">저장</button>
         <button type="button" class="place-delete-button">삭제</button>
       </div>
     `);
     marker.on("popupopen", () => {
       const popup = marker.getPopup()?.getElement();
-      const button = popup?.querySelector(".place-delete-button");
-      if (button) button.addEventListener("click", () => handleDeletePlace(place));
+      const deleteButton = popup?.querySelector(".place-delete-button");
+      const saveButton = popup?.querySelector(".place-note-save-button");
+      const noteInput = popup?.querySelector(".place-note-input");
+      if (deleteButton) deleteButton.addEventListener("click", () => handleDeletePlace(place));
+      if (saveButton && noteInput) saveButton.addEventListener("click", () => handleSavePlaceNote(place, noteInput.value));
     });
     marker.addTo(state.placeLayer);
     bounds.push([place.lat, place.lng]);
@@ -505,14 +517,14 @@ async function addSearchPlace(index) {
   if (!result) return;
 
   const type = placeTypeSelect.value || "기타";
-  const note = prompt("장소 메모", "") || "";
   const place = {
     name: result.name,
-    note: note.trim(),
+    note: "",
+    address: result.address,
     type,
     lat: result.lat,
     lng: result.lng,
-    googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${result.lat},${result.lng}`,
+    googleMapsUrl: buildGoogleMapsSearchUrl(result.name, result.address),
   };
 
   mapStatus.textContent = "저장 중";
@@ -702,6 +714,11 @@ function normalizeUrl(value) {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
+function buildGoogleMapsSearchUrl(name, address = "") {
+  const query = [name, address].filter(Boolean).join(" ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 function updateHash() {
   history.replaceState(null, "", `${location.pathname}${location.search}#${state.view}`);
 }
@@ -822,6 +839,20 @@ async function handleDeletePlace(place) {
     if (state.map) state.map.closePopup();
     renderPlaces();
     mapStatus.textContent = state.places.length ? `${state.places.length}개` : "장소 없음";
+  } catch (error) {
+    mapStatus.textContent = error.message;
+  }
+}
+
+async function handleSavePlaceNote(place, note) {
+  if (!place?.placeId) return;
+
+  mapStatus.textContent = "저장 중";
+
+  try {
+    await updatePlaceNote(place.placeId, note.trim());
+    place.note = note.trim();
+    mapStatus.textContent = "저장됨";
   } catch (error) {
     mapStatus.textContent = error.message;
   }

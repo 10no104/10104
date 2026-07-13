@@ -119,6 +119,7 @@ function handleRequest_(request) {
     if (action === "deleteRecipe") return ok_(deleteRecipe_(request.recipeId));
     if (action === "createPlace") return ok_(createPlace_(parseData_(request.data || request)));
     if (action === "deletePlace") return ok_(deletePlace_(request.placeId));
+    if (action === "updatePlaceNote") return ok_(updatePlaceNote_(request.placeId, request.note));
     if (action === "setupSpreadsheet") return ok_(setupSpreadsheet());
     return fail_("UNKNOWN_ACTION", "지원하지 않는 action입니다.");
   } catch (error) {
@@ -250,7 +251,8 @@ function createPlace_(data) {
         lat,
         lng,
         type,
-        googleMapsUrl: String(data.googleMapsUrl || "https://www.google.com/maps/search/?api=1&query=" + lat + "," + lng).trim(),
+        address: String(data.address || "").trim(),
+        googleMapsUrl: String(data.googleMapsUrl || buildGoogleMapsSearchUrl_(data.name, data.address, lat, lng)).trim(),
       }),
       unit: "",
       source: String(data.source || "map-search").trim(),
@@ -264,6 +266,11 @@ function createPlace_(data) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function buildGoogleMapsSearchUrl_(name, address, lat, lng) {
+  const query = [name, address].filter(Boolean).join(" ") || lat + "," + lng;
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
 }
 
 function deletePlace_(placeId) {
@@ -289,6 +296,38 @@ function deletePlace_(placeId) {
       if (String(values[rowIndex - 1][referenceIdColumn - 1]) === String(placeId)) {
         sheet.getRange(rowIndex, isActiveColumn).setValue("false");
         return { placeId, isActive: false };
+      }
+    }
+
+    throw new Error("장소를 찾을 수 없습니다.");
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function updatePlaceNote_(placeId, note) {
+  if (!placeId) throw new Error("placeId가 필요합니다.");
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEETS.REFERENCE_DATA);
+    if (!sheet) throw new Error("App_ReferenceData 시트를 찾을 수 없습니다.");
+
+    const values = sheet.getDataRange().getValues();
+    if (values.length < 2) throw new Error("장소를 찾을 수 없습니다.");
+
+    const headers = values[0].map(String);
+    const referenceIdColumn = headers.indexOf("referenceId") + 1;
+    const noteColumn = headers.indexOf("note") + 1;
+    if (!referenceIdColumn || !noteColumn) throw new Error("필수 컬럼을 찾을 수 없습니다.");
+
+    for (let rowIndex = 2; rowIndex <= values.length; rowIndex += 1) {
+      if (String(values[rowIndex - 1][referenceIdColumn - 1]) === String(placeId)) {
+        sheet.getRange(rowIndex, noteColumn).setValue(String(note || "").trim());
+        return { placeId, note: String(note || "").trim() };
       }
     }
 
