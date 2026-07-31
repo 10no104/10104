@@ -3201,3 +3201,83 @@ body.sequence-mode .start-cooking-button {
     max-width: 220px;
   }
 }
+
+/* Softer UI surfaces: the recipe notes keep their paper-cut edges. */
+.app-header {
+  border-radius: 22px;
+}
+
+.status-strip {
+  border-radius: 16px;
+}
+
+.recipe-browser,
+.detail-panel,
+.info-card,
+.map-shell,
+.recipe-form,
+.empty-detail,
+.detail-hero,
+.sequence-view {
+  border-radius: 20px;
+}
+
+.meta-grid div,
+.ingredient-item,
+.focus-strip,
+.detail-focus,
+.source-link,
+.back-button,
+.map-toolbar,
+.map-search,
+.place-type-select,
+.map-toolbar button,
+.form-actions button,
+.icon-button,
+.sequence-nav-button,
+.sequence-next-button {
+  border-radius: 12px;
+}
+
+input,
+select,
+textarea {
+  border-radius: 12px;
+}
+
+.start-cooking-button {
+  border-radius: 16px;
+}
+
+.start-cooking-arrow {
+  border-radius: 10px;
+}
+
+.sequence-progress,
+.card-count,
+.status-strip small,
+.fab {
+  border-radius: 999px;
+}
+
+.bottom-nav {
+  border-radius: 18px 18px 0 0;
+}
+
+.bottom-nav button {
+  border-radius: 14px;
+}
+
+/* Keep the note collage visibly paper-like and intentionally angular. */
+.recipe-card,
+.recipe-card:hover,
+.recipe-card.active,
+.recipe-card.active:hover,
+.recipe-card:nth-child(even),
+.recipe-card:nth-child(even):hover,
+.recipe-card:nth-child(even).active,
+.recipe-card:nth-child(even).active:hover,
+.recipe-card:nth-child(3n),
+.recipe-card:nth-child(3n):hover {
+  border-radius: 2px;
+}
