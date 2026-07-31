@@ -76,6 +76,35 @@
                 </div>
               </div>
 
+              <section class="sequence-view" id="sequenceView" aria-labelledby="sequenceTitle">
+                <div class="sequence-toolbar">
+                  <div>
+                    <p class="card-kicker">Guided flow</p>
+                    <span class="sequence-recipe-name" id="sequenceRecipeName"></span>
+                  </div>
+                  <span class="sequence-progress" id="sequenceProgress">01 / 01</span>
+                </div>
+
+                <div class="sequence-stage" id="sequenceStage">
+                  <div class="sequence-stage-number" id="sequenceMarker">01</div>
+                  <div class="sequence-stage-copy">
+                    <p class="sequence-label" id="sequenceLabel">재료 준비</p>
+                    <h3 id="sequenceTitle">재료를 준비해주세요</h3>
+                    <div class="sequence-ingredients" id="sequenceIngredients"></div>
+                    <p class="sequence-instruction" id="sequenceInstruction"></p>
+                    <div class="sequence-meta" id="sequenceMeta"></div>
+                  </div>
+                </div>
+
+                <div class="sequence-footer">
+                  <div class="sequence-dots" id="sequenceDots" aria-label="작업 흐름 위치"></div>
+                  <div class="sequence-actions">
+                    <button class="sequence-nav-button" id="sequencePrevButton" type="button" aria-label="이전 작업">←</button>
+                    <button class="sequence-next-button" id="sequenceNextButton" type="button">다음 작업 →</button>
+                  </div>
+                </div>
+              </section>
+
               <div class="detail-sections">
                 <section class="info-card ingredient-card">
                   <div class="card-heading">
@@ -93,10 +122,10 @@
                   <div class="card-heading">
                     <div>
                       <p class="card-kicker">Sequence</p>
-                      <h3>투입 순서</h3>
-                      <p>넣는 순서대로</p>
+                      <h3>전체 흐름</h3>
+                      <p>타이틀을 눌러 확인</p>
                     </div>
-                    <span class="card-count" id="stepCount">0단계</span>
+                    <span class="card-count" id="stepCount">0개</span>
                   </div>
                   <ol id="stepList" class="step-list"></ol>
                 </section>
@@ -236,8 +265,9 @@
         </label>
 
         <label>
-          <span>조리 순서</span>
-          <textarea id="recipeStepsInput" rows="6"></textarea>
+          <span>작업 장면</span>
+          <small class="field-note">한 줄: 타이틀 | 재료 | 설명</small>
+          <textarea id="recipeStepsInput" rows="6" placeholder="버터 넣기 | 버터 100g | 녹인 버터를 반죽에 섞어요"></textarea>
         </label>
 
         <p class="form-status" id="recipeFormStatus"></p>

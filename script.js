@@ -44,6 +44,7 @@ const state = {
   view: "baking",
   recipes: [],
   selectedId: "",
+  sequenceIndex: 0,
   query: "",
   placeQuery: "",
   placeResults: [],
@@ -76,6 +77,18 @@ const ingredientList = document.querySelector("#ingredientList");
 const stepList = document.querySelector("#stepList");
 const ingredientCount = document.querySelector("#ingredientCount");
 const stepCount = document.querySelector("#stepCount");
+const sequenceRecipeName = document.querySelector("#sequenceRecipeName");
+const sequenceProgress = document.querySelector("#sequenceProgress");
+const sequenceStage = document.querySelector("#sequenceStage");
+const sequenceMarker = document.querySelector("#sequenceMarker");
+const sequenceLabel = document.querySelector("#sequenceLabel");
+const sequenceTitle = document.querySelector("#sequenceTitle");
+const sequenceIngredients = document.querySelector("#sequenceIngredients");
+const sequenceInstruction = document.querySelector("#sequenceInstruction");
+const sequenceMeta = document.querySelector("#sequenceMeta");
+const sequenceDots = document.querySelector("#sequenceDots");
+const sequencePrevButton = document.querySelector("#sequencePrevButton");
+const sequenceNextButton = document.querySelector("#sequenceNextButton");
 const latestFeedbackCard = document.querySelector("#latestFeedbackCard");
 const latestFeedback = document.querySelector("#latestFeedback");
 const placesMap = document.querySelector("#placesMap");
@@ -94,7 +107,9 @@ const recipeFormStatus = document.querySelector("#recipeFormStatus");
 async function loadRecipes() {
   const current = VIEWS[state.view];
   state.selectedId = "";
+  state.sequenceIndex = 0;
   recipeStage.classList.remove("show-detail");
+  setSequenceMode(false);
   setStatus("불러오는 중", 0);
   recipeList.innerHTML = '<p class="empty-state">불러오는 중</p>';
 
@@ -108,7 +123,9 @@ async function loadRecipes() {
     const recipes = await loadFromSpreadsheetWithFallback(current.type);
     state.recipes = normalizeRecipes(recipes);
     state.selectedId = state.recipes[0]?.recipeId || "";
-    recipeStage.classList.toggle("show-detail", Boolean(state.selectedId) && window.matchMedia("(max-width: 760px)").matches);
+    const showDetail = Boolean(state.selectedId) && window.matchMedia("(max-width: 760px)").matches;
+    recipeStage.classList.toggle("show-detail", showDetail);
+    setSequenceMode(showDetail);
     setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
   } catch {
     state.recipes = [];
@@ -634,10 +651,14 @@ function renderList() {
     button.addEventListener("click", () => {
       if (state.selectedId === recipe.recipeId) {
         state.selectedId = "";
+        state.sequenceIndex = 0;
         recipeStage.classList.remove("show-detail");
+        setSequenceMode(false);
       } else {
         state.selectedId = recipe.recipeId;
+        state.sequenceIndex = 0;
         recipeStage.classList.add("show-detail");
+        setSequenceMode(true);
       }
       render();
     });
@@ -666,6 +687,7 @@ function renderDetail() {
 
   renderIngredients(recipe.ingredients || []);
   renderSteps(recipe.steps || []);
+  renderSequence(recipe);
 
   if (recipe.latestFeedback) latestFeedback.textContent = recipe.latestFeedback;
 }
@@ -697,16 +719,37 @@ function renderIngredients(items) {
 
 function renderSteps(items) {
   stepList.innerHTML = "";
-  const list = items.length ? items : [{ instruction: "등록된 투입 순서가 없어요." }];
-  stepCount.textContent = `${items.length}단계`;
+  const list = items.length ? items : [{ title: "작업 흐름을 준비해주세요", instruction: "등록된 작업 장면이 없어요." }];
+  stepCount.textContent = `${items.length}개`;
   list.forEach((item, index) => {
     const li = document.createElement("li");
     li.className = "step-item";
-    const instruction = typeof item === "string" ? item : item.instruction;
+    const title = getStepTitle(item, index);
+    const instruction = getStepInstruction(item);
+    const ingredients = getStepIngredients(item);
+    const ingredientMarkup = ingredients.length
+      ? `<span class="step-ingredient-preview">${ingredients.map((name) => escapeHtml(name)).join(" · ")}</span>`
+      : "";
+    if (items.length) {
+      li.tabIndex = 0;
+      li.setAttribute("role", "button");
+      li.addEventListener("click", () => {
+        state.sequenceIndex = index;
+        renderSequence(getSelectedRecipe());
+      });
+      li.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          state.sequenceIndex = index;
+          renderSequence(getSelectedRecipe());
+        }
+      });
+    }
     li.innerHTML = `
       <span class="step-number">${String(index + 1).padStart(2, "0")}</span>
       <span class="step-copy">
-        <strong>투입 ${index + 1}</strong>
+        <strong>${escapeHtml(title)}</strong>
+        ${ingredientMarkup}
         <p>${escapeHtml(instruction || "")}</p>
       </span>
     `;
@@ -714,9 +757,98 @@ function renderSteps(items) {
   });
 }
 
+function renderSequence(recipe) {
+  const items = recipe?.steps || [];
+  const total = items.length;
+  const hasSequence = total > 0;
+  const index = hasSequence ? Math.min(Math.max(state.sequenceIndex, 0), total - 1) : 0;
+  state.sequenceIndex = index;
+
+  sequenceRecipeName.textContent = recipe?.name || "작업 흐름";
+  sequenceProgress.textContent = hasSequence
+    ? `${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`
+    : "-- / --";
+  sequenceMarker.textContent = hasSequence ? String(index + 1).padStart(2, "0") : "—";
+  sequenceStage.classList.toggle("is-empty", !hasSequence);
+  sequencePrevButton.disabled = !hasSequence || index === 0;
+  sequenceNextButton.disabled = !hasSequence;
+  sequenceNextButton.textContent = hasSequence && index === total - 1 ? "완료" : "다음 작업 →";
+
+  sequenceDots.innerHTML = items.map((item, itemIndex) => `
+    <button class="sequence-dot${itemIndex === index ? " active" : ""}" type="button" aria-label="${escapeHtml(getStepTitle(item, itemIndex))}" aria-current="${itemIndex === index ? "step" : "false"}" data-sequence-index="${itemIndex}"></button>
+  `).join("");
+  sequenceDots.querySelectorAll(".sequence-dot").forEach((dot) => {
+    dot.addEventListener("click", () => {
+      state.sequenceIndex = Number(dot.dataset.sequenceIndex);
+      renderSequence(getSelectedRecipe());
+    });
+  });
+
+  if (!hasSequence) {
+    sequenceLabel.textContent = "작업 흐름";
+    sequenceTitle.textContent = "작업 장면을 준비해주세요";
+    sequenceIngredients.innerHTML = "";
+    sequenceInstruction.textContent = "이 레시피에 아직 저장된 작업 장면이 없어요.";
+    sequenceMeta.innerHTML = "";
+    return;
+  }
+
+  const item = items[index];
+  const ingredients = getStepIngredients(item);
+  sequenceLabel.textContent = getStepLabel(item, index);
+  sequenceTitle.textContent = getStepTitle(item, index);
+  sequenceIngredients.innerHTML = ingredients.length
+    ? ingredients.map((name) => `<span>${escapeHtml(name)}</span>`).join("")
+    : '<span class="sequence-ingredient-empty">재료를 확인해주세요</span>';
+  sequenceInstruction.textContent = getStepInstruction(item) || "이 장면의 설명을 추가해주세요.";
+  sequenceMeta.innerHTML = getStepMeta(item)
+    .map((value) => `<span>${escapeHtml(value)}</span>`)
+    .join("");
+}
+
+function getStepLabel(item, index) {
+  if (typeof item === "string") return "Mise en place";
+  return item?.label || item?.method || item?.category || "Mise en place";
+}
+
+function getStepTitle(item, index) {
+  if (typeof item === "string") return item.trim() || "재료 준비";
+  const title = item?.title || item?.name || item?.ingredientName;
+  if (title) return String(title).trim();
+  const instruction = getStepInstruction(item);
+  return instruction.split(/[.!?。！？]/)[0].trim() || `작업 ${index + 1}`;
+}
+
+function getStepInstruction(item) {
+  if (typeof item === "string") return item.trim();
+  return String(item?.instruction || item?.description || item?.notes || "").trim();
+}
+
+function getStepIngredients(item) {
+  if (typeof item === "string" || !item) return [];
+  const value = item.ingredientNames ?? item.ingredientName ?? item.ingredients ?? item.ingredient ?? "";
+  const values = Array.isArray(value)
+    ? value.map((entry) => typeof entry === "string" ? entry : entry?.name)
+    : String(value).split(/[,、·]/);
+  return values.map((entry) => String(entry || "").trim()).filter(Boolean);
+}
+
+function getStepMeta(item) {
+  if (typeof item === "string" || !item) return [];
+  return [
+    item.durationMinutes ? `${item.durationMinutes}분` : "",
+    item.temperatureC ? `${item.temperatureC}°C` : "",
+    item.notes && !getStepInstruction(item).includes(String(item.notes)) ? item.notes : "",
+  ].filter(Boolean);
+}
+
 function render() {
   renderList();
   renderDetail();
+}
+
+function setSequenceMode(enabled) {
+  document.body.classList.toggle("sequence-mode", Boolean(enabled));
 }
 
 function formatYield(recipe) {
@@ -799,7 +931,9 @@ recipeForm.addEventListener("submit", async (event) => {
 searchInput.addEventListener("input", (event) => {
   state.query = event.target.value;
   state.selectedId = "";
+  state.sequenceIndex = 0;
   recipeStage.classList.remove("show-detail");
+  setSequenceMode(false);
   render();
 });
 
@@ -811,9 +945,25 @@ mapSearchInput.addEventListener("input", (event) => {
 
 document.querySelector("#backButton").addEventListener("click", () => {
   state.selectedId = "";
+  state.sequenceIndex = 0;
   recipeStage.classList.remove("show-detail");
+  setSequenceMode(false);
   render();
 });
+
+sequencePrevButton.addEventListener("click", () => moveSequence(-1));
+sequenceNextButton.addEventListener("click", () => moveSequence(1));
+
+let sequenceTouchStartX = 0;
+sequenceStage.addEventListener("touchstart", (event) => {
+  sequenceTouchStartX = event.changedTouches[0]?.clientX || 0;
+}, { passive: true });
+sequenceStage.addEventListener("touchend", (event) => {
+  const endX = event.changedTouches[0]?.clientX || 0;
+  const distance = endX - sequenceTouchStartX;
+  if (Math.abs(distance) < 44) return;
+  moveSequence(distance < 0 ? 1 : -1);
+}, { passive: true });
 
 deleteRecipeButton.addEventListener("click", handleDeleteRecipe);
 locateButton.addEventListener("click", showCurrentLocation);
@@ -832,6 +982,14 @@ function openRecipeForm() {
   document.querySelector("#recipeNameInput").focus();
 }
 
+function moveSequence(direction) {
+  const recipe = getSelectedRecipe();
+  const total = recipe?.steps?.length || 0;
+  if (!total) return;
+  state.sequenceIndex = Math.min(Math.max(state.sequenceIndex + direction, 0), total - 1);
+  renderSequence(recipe);
+}
+
 function closeRecipeForm() {
   recipeModal.hidden = true;
 }
@@ -847,7 +1005,9 @@ async function handleDeleteRecipe() {
     await deleteRecipe(recipe.recipeId);
     state.recipes = state.recipes.filter((item) => item.recipeId !== recipe.recipeId);
     state.selectedId = "";
+    state.sequenceIndex = 0;
     recipeStage.classList.remove("show-detail");
+    setSequenceMode(false);
     setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
     render();
   } catch (error) {
@@ -916,6 +1076,16 @@ function parseIngredientLines(value) {
 function parseStepLines(value) {
   return value
     .split(/\r?\n/)
-    .map((line, index) => ({ instruction: line.trim(), sortOrder: index + 1 }))
-    .filter((item) => item.instruction);
+    .map((line, index) => {
+      const parts = line.split("|").map((part) => part.trim());
+      const [first = "", second = "", third = ""] = parts;
+      const hasTitleFormat = parts.length > 1;
+      return {
+        title: hasTitleFormat ? first : "",
+        ingredientNames: hasTitleFormat ? second : "",
+        instruction: hasTitleFormat ? third : first,
+        sortOrder: index + 1,
+      };
+    })
+    .filter((item) => item.title || item.ingredientNames || item.instruction);
 }

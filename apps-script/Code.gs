@@ -45,7 +45,7 @@ const HEADERS = {
     "isArchived",
   ],
   [SHEETS.INGREDIENTS]: ["ingredientId", "recipeId", "version", "groupName", "sortOrder", "name", "amount", "unit", "notes"],
-  [SHEETS.STEPS]: ["stepId", "recipeId", "version", "sortOrder", "instruction", "durationMinutes", "temperatureC", "notes"],
+  [SHEETS.STEPS]: ["stepId", "recipeId", "version", "sortOrder", "title", "ingredientNames", "instruction", "durationMinutes", "temperatureC", "notes"],
   [SHEETS.FEEDBACK]: [
     "feedbackId",
     "recipeId",
@@ -71,6 +71,7 @@ function setupSpreadsheet() {
   const created = [];
   const untouched = [];
   const headerAdded = [];
+  const headersUpdated = [];
 
   Object.keys(HEADERS).forEach((sheetName) => {
     let sheet = ss.getSheetByName(sheetName);
@@ -86,10 +87,13 @@ function setupSpreadsheet() {
       sheet.getRange(1, 1, 1, HEADERS[sheetName].length).setValues([HEADERS[sheetName]]);
       sheet.setFrozenRows(1);
       headerAdded.push(sheetName);
+    } else {
+      const missingHeaders = ensureHeaders_(sheet, HEADERS[sheetName]);
+      if (missingHeaders.length) headersUpdated.push({ sheetName, headers: missingHeaders });
     }
   });
 
-  const result = { created, untouched, headerAdded };
+  const result = { created, untouched, headerAdded, headersUpdated };
   Logger.log(JSON.stringify(result));
   return result;
 }
@@ -181,6 +185,8 @@ function createRecipe_(data) {
         recipeId,
         version,
         sortOrder: item.sortOrder || index + 1,
+        title: item.title || "",
+        ingredientNames: item.ingredientNames || "",
         instruction: item.instruction || "",
         durationMinutes: item.durationMinutes || "",
         temperatureC: item.temperatureC || "",
@@ -415,6 +421,16 @@ function isHeaderMissing_(sheet) {
   if (sheet.getLastRow() === 0) return true;
   const firstRow = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
   return firstRow.every((cell) => cell === "");
+}
+
+function ensureHeaders_(sheet, headers) {
+  const width = Math.max(1, sheet.getLastColumn());
+  const currentHeaders = sheet.getRange(1, 1, 1, width).getValues()[0].map(String);
+  const missingHeaders = headers.filter((header) => !currentHeaders.includes(header));
+  missingHeaders.forEach((header, index) => {
+    sheet.getRange(1, width + index + 1).setValue(header);
+  });
+  return missingHeaders;
 }
 
 function ok_(data) {
