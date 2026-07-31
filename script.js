@@ -126,9 +126,8 @@ async function loadRecipes() {
   try {
     const recipes = await loadFromSpreadsheetWithFallback(current.type);
     state.recipes = normalizeRecipes(recipes);
-    state.selectedId = state.recipes[0]?.recipeId || "";
-    const showDetail = Boolean(state.selectedId) && window.matchMedia("(max-width: 760px)").matches;
-    recipeStage.classList.toggle("show-detail", showDetail);
+    state.selectedId = "";
+    recipeStage.classList.remove("show-detail");
     setSequenceMode(false);
     setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
   } catch {

@@ -131,9 +131,13 @@
                 </section>
               </div>
 
-              <button class="start-cooking-button" id="startCookingButton" type="button">
-                <span>요리 시작</span>
-                <strong>→</strong>
+              <button class="start-cooking-button" id="startCookingButton" type="button" aria-label="요리 시작">
+                <span class="start-cooking-copy">
+                  <small>READY TO COOK</small>
+                  <strong>요리 시작</strong>
+                  <em>재료를 모두 꺼냈다면 순서대로 시작해요</em>
+                </span>
+                <span class="start-cooking-arrow" aria-hidden="true">→</span>
               </button>
 
               <section class="info-card" id="latestFeedbackCard" hidden>

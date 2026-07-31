@@ -3122,3 +3122,82 @@ body.sequence-mode .start-cooking-button {
   font-size: 1.25rem;
   line-height: 1;
 }
+
+.start-cooking-button {
+  min-height: 82px;
+  border: 1px solid var(--ink);
+  border-top: 6px solid var(--accent);
+  border-left: 0;
+  background: var(--ink);
+  color: white;
+  box-shadow: 5px 6px 0 rgba(36, 19, 15, 0.12);
+  padding: 12px 14px 12px 17px;
+}
+
+.start-cooking-button:hover {
+  background: var(--ink);
+  box-shadow: 7px 8px 0 rgba(36, 19, 15, 0.16);
+  transform: translate(-2px, -2px);
+}
+
+.start-cooking-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  text-align: left;
+}
+
+.start-cooking-copy small {
+  color: var(--brand);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.start-cooking-copy strong {
+  color: white;
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
+.start-cooking-copy em {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.start-cooking-arrow {
+  display: grid;
+  width: 55px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--ink);
+  font-size: 1.35rem !important;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.start-cooking-button:disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+@media (max-width: 760px) {
+  .start-cooking-button {
+    min-height: 86px;
+    padding-right: 11px;
+    padding-left: 14px;
+  }
+
+  .start-cooking-copy em {
+    max-width: 220px;
+  }
+}
