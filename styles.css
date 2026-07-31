@@ -2653,3 +2653,296 @@ textarea:focus {
   background: var(--brand-dark);
   color: white;
 }
+
+/* Final palette lock: Romantic Mint, Dark Chocolate and Banana only. */
+:root {
+  --bg: #24130f;
+  --paper: #ffffff;
+  --paper-strong: #f0fbf9;
+  --ink: #24130f;
+  --muted: rgba(36, 19, 15, 0.62);
+  --line: rgba(36, 19, 15, 0.16);
+  --brand: #84dfd6;
+  --brand-dark: #24130f;
+  --brand-soft: #e5f8f5;
+  --accent: #e1e062;
+  --accent-soft: #faf9dc;
+  --warm: #24130f;
+  --wood: #24130f;
+  --sky: #84dfd6;
+  --pink: #e1e062;
+  --shadow: none;
+  --shadow-small: none;
+}
+
+html,
+body {
+  background: var(--bg);
+}
+
+.app-header,
+.detail-hero,
+.sequence-view,
+.empty-detail,
+.recipe-card.active {
+  background-image: none !important;
+}
+
+.app-header {
+  border: 0;
+  border-bottom: 6px solid var(--brand);
+  border-radius: 0;
+  background: var(--paper) !important;
+  box-shadow: none;
+}
+
+.app-header::before,
+.app-header::after,
+.detail-hero::after,
+.sequence-view::before,
+.sequence-view::after {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  content: none !important;
+}
+
+.header-mark {
+  display: none;
+}
+
+.app-header .eyebrow,
+.eyebrow,
+.card-kicker,
+.sequence-label,
+.sequence-meta span,
+.step-ingredient-preview,
+.ingredient-group,
+.source-link {
+  color: var(--ink);
+}
+
+.header-mark span,
+.header-mark span:first-child {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.header-note,
+.recipe-card-preview,
+.sequence-recipe-name,
+.sequence-instruction,
+.detail-hero > p:not(.eyebrow),
+.focus-strip div > span {
+  color: var(--muted);
+}
+
+.status-strip,
+.recipe-browser,
+.detail-panel,
+.info-card,
+.map-shell,
+.empty-detail,
+.detail-hero,
+.sequence-view,
+.meta-grid div,
+.ingredient-item,
+.recipe-form {
+  border-color: var(--line);
+  border-radius: 0;
+  background: var(--paper);
+  box-shadow: none;
+}
+
+.status-strip {
+  border-right: 0;
+  border-left: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.status-strip small,
+.card-count,
+.detail-focus,
+.sequence-progress {
+  border-color: var(--brand);
+  border-radius: 0;
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+.recipe-card,
+.recipe-card:hover,
+.recipe-card.active {
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+.recipe-card:hover,
+.recipe-card.active {
+  border-color: var(--brand);
+  border-left: 4px solid var(--accent);
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+.recipe-card::before,
+.recipe-card.active::before {
+  background: var(--brand);
+}
+
+.recipe-card.active .recipe-card-type,
+.recipe-card.active .recipe-card-meta,
+.recipe-card.active .recipe-card-preview {
+  color: var(--ink);
+}
+
+.detail-hero {
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--accent);
+  color: var(--ink);
+}
+
+.detail-hero .eyebrow,
+.detail-focus,
+.meta-grid strong,
+.sequence-progress,
+.sequence-toolbar .card-kicker,
+.sequence-stage-number,
+.sequence-stage h3,
+.ingredient-amount,
+.step-copy strong,
+.map-toolbar .eyebrow {
+  color: var(--ink);
+}
+
+.focus-strip {
+  border-color: var(--accent);
+  border-radius: 0;
+  background: var(--accent-soft);
+}
+
+.focus-icon {
+  border-radius: 0;
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.sequence-view {
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--brand);
+  background: var(--paper) !important;
+  color: var(--ink);
+}
+
+.sequence-stage-number {
+  text-shadow: none;
+}
+
+.sequence-ingredients span {
+  border-color: var(--brand);
+  border-radius: 0;
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+.sequence-ingredients .sequence-ingredient-empty {
+  border-color: var(--line);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--muted);
+}
+
+.sequence-footer {
+  border-top-color: var(--line);
+}
+
+.sequence-dot {
+  border-radius: 0;
+  background: var(--line);
+}
+
+.sequence-dot.active {
+  background: var(--accent);
+}
+
+.sequence-nav-button,
+.sequence-next-button {
+  border-color: var(--brand);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.sequence-next-button {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--accent);
+}
+
+.ingredient-card {
+  border-color: var(--brand);
+  background: var(--paper-strong);
+}
+
+.ingredient-index,
+.step-number {
+  border-color: var(--brand);
+  border-radius: 0;
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+.step-item:hover,
+.step-item:focus-visible {
+  background: var(--brand-soft);
+}
+
+.fab {
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.bottom-nav {
+  border-top-color: var(--brand);
+  background: var(--ink);
+  box-shadow: none;
+}
+
+.bottom-nav button {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.bottom-nav button.active {
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.map-toolbar {
+  border-color: var(--brand);
+  border-radius: 0;
+  background: var(--ink);
+  box-shadow: none;
+}
+
+.map-toolbar h2 {
+  color: white;
+}
+
+.map-toolbar button {
+  border-color: var(--accent);
+  border-radius: 0;
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.form-actions button[type="submit"] {
+  border-color: var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--accent);
+}
