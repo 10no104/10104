@@ -11,33 +11,52 @@
   <body>
     <main class="app-shell">
       <header class="app-header">
-        <div>
-          <p class="eyebrow">Recipe Studio</p>
+        <div class="header-copy">
+          <p class="eyebrow">Mise en place</p>
           <h1 id="sectionTitle">베이킹</h1>
+          <p class="header-note">재료를 먼저 보고, 넣는 순서대로 따라가요.</p>
+        </div>
+        <div class="header-mark" aria-hidden="true">
+          <span>01</span>
+          <span>02</span>
+          <span>03</span>
         </div>
       </header>
 
       <section class="status-strip" id="statusStrip">
         <label>
-          <span>검색 <small id="recipeCount">0개</small></span>
-          <input id="searchInput" type="search" autocomplete="off" />
+          <span><strong>레시피 찾기</strong><small id="recipeCount">0개</small></span>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="이름이나 재료로 검색" aria-label="레시피 이름이나 재료 검색" />
         </label>
       </section>
 
       <section class="screen active" id="recipesScreen" aria-label="레시피">
         <section class="recipe-stage" id="recipeStage">
-          <div class="recipe-list" id="recipeList"></div>
+          <aside class="recipe-browser">
+            <div class="list-heading">
+              <div>
+                <p class="eyebrow">Library</p>
+                <h2>레시피 목록</h2>
+              </div>
+              <span class="list-hint">눌러서 보기</span>
+            </div>
+            <div class="recipe-list" id="recipeList" aria-label="레시피 목록"></div>
+          </aside>
 
           <article class="detail-panel" id="detailPanel">
-            <button class="back-button" id="backButton" type="button">← 목록</button>
+            <button class="back-button" id="backButton" type="button">← 다른 레시피</button>
             <div class="empty-detail" id="emptyDetail">
-              <p class="eyebrow">Select</p>
-              <h2>레시피 선택</h2>
+              <p class="eyebrow">Start here</p>
+              <h2>재료를 볼 레시피를 골라주세요</h2>
+              <p>레시피를 선택하면 재료와 투입 순서를 한 번에 확인할 수 있어요.</p>
             </div>
 
             <div class="recipe-detail" id="recipeDetail" hidden>
               <div class="detail-hero">
-                <p class="eyebrow" id="detailType">Recipe</p>
+                <div class="detail-hero-topline">
+                  <p class="eyebrow" id="detailType">Recipe</p>
+                  <span class="detail-focus">재료 먼저 보기</span>
+                </div>
                 <h2 id="detailName"></h2>
                 <p id="detailDescription"></p>
                 <a class="source-link" id="sourceLink" href="#" target="_blank" rel="noreferrer" hidden>출처</a>
@@ -45,30 +64,54 @@
 
               <div class="meta-grid">
                 <div><strong id="detailYield">-</strong><span>분량</span></div>
-                <div><strong id="detailUpdated">-</strong><span>수정일</span></div>
-                <div><strong id="detailFeedback">0</strong><span>후기</span></div>
+                <div><strong id="detailIngredientCount">0</strong><span>재료</span></div>
+                <div><strong id="detailStepCount">0</strong><span>투입 순서</span></div>
               </div>
+
+              <div class="focus-strip">
+                <span class="focus-icon" aria-hidden="true">→</span>
+                <div>
+                  <strong>재료 확인 후 바로 시작</strong>
+                  <span>재료를 꺼내고, 아래 순서대로 투입하세요.</span>
+                </div>
+              </div>
+
+              <div class="detail-sections">
+                <section class="info-card ingredient-card">
+                  <div class="card-heading">
+                    <div>
+                      <p class="card-kicker">Mise en place</p>
+                      <h3>재료</h3>
+                      <p>먼저 꺼내둘 것</p>
+                    </div>
+                    <span class="card-count" id="ingredientCount">0개</span>
+                  </div>
+                  <ul id="ingredientList" class="ingredient-list"></ul>
+                </section>
+
+                <section class="info-card step-card">
+                  <div class="card-heading">
+                    <div>
+                      <p class="card-kicker">Sequence</p>
+                      <h3>투입 순서</h3>
+                      <p>넣는 순서대로</p>
+                    </div>
+                    <span class="card-count" id="stepCount">0단계</span>
+                  </div>
+                  <ol id="stepList" class="step-list"></ol>
+                </section>
+              </div>
+
+              <section class="info-card" id="latestFeedbackCard" hidden>
+                <h3>최근 후기</h3>
+                <p id="latestFeedback"></p>
+              </section>
 
               <div class="action-grid">
                 <button type="button" disabled>분량 변경</button>
                 <button type="button" disabled>후기 작성</button>
                 <button type="button" id="deleteRecipeButton" class="danger-button">삭제</button>
               </div>
-
-              <section class="info-card">
-                <h3>재료</h3>
-                <ul id="ingredientList"></ul>
-              </section>
-
-              <section class="info-card">
-                <h3>조리 순서</h3>
-                <ol id="stepList"></ol>
-              </section>
-
-              <section class="info-card" id="latestFeedbackCard" hidden>
-                <h3>최근 후기</h3>
-                <p id="latestFeedback"></p>
-              </section>
             </div>
           </article>
         </section>

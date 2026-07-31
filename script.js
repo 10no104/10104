@@ -69,11 +69,13 @@ const detailName = document.querySelector("#detailName");
 const detailDescription = document.querySelector("#detailDescription");
 const sourceLink = document.querySelector("#sourceLink");
 const detailYield = document.querySelector("#detailYield");
-const detailUpdated = document.querySelector("#detailUpdated");
-const detailFeedback = document.querySelector("#detailFeedback");
+const detailIngredientCount = document.querySelector("#detailIngredientCount");
+const detailStepCount = document.querySelector("#detailStepCount");
 const deleteRecipeButton = document.querySelector("#deleteRecipeButton");
 const ingredientList = document.querySelector("#ingredientList");
 const stepList = document.querySelector("#stepList");
+const ingredientCount = document.querySelector("#ingredientCount");
+const stepCount = document.querySelector("#stepCount");
 const latestFeedbackCard = document.querySelector("#latestFeedbackCard");
 const latestFeedback = document.querySelector("#latestFeedback");
 const placesMap = document.querySelector("#placesMap");
@@ -105,6 +107,8 @@ async function loadRecipes() {
   try {
     const recipes = await loadFromSpreadsheetWithFallback(current.type);
     state.recipes = normalizeRecipes(recipes);
+    state.selectedId = state.recipes[0]?.recipeId || "";
+    recipeStage.classList.toggle("show-detail", Boolean(state.selectedId) && window.matchMedia("(max-width: 760px)").matches);
     setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
   } catch {
     state.recipes = [];
@@ -581,7 +585,15 @@ function showCurrentLocation() {
 function getVisibleRecipes() {
   const query = state.query.trim().toLowerCase();
   const recipes = state.recipes.filter((recipe) => {
-    return !query || String(recipe.name || "").toLowerCase().includes(query);
+    if (!query) return true;
+    const ingredientText = (recipe.ingredients || [])
+      .map((item) => typeof item === "string" ? item : [item.name, item.groupName, item.notes].filter(Boolean).join(" "))
+      .join(" ");
+    const searchableText = [recipe.name, recipe.category, recipe.description, ingredientText]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return searchableText.includes(query);
   });
 
   return recipes.sort((a, b) => {
@@ -607,7 +619,18 @@ function renderList() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `recipe-card${recipe.recipeId === state.selectedId ? " active" : ""}`;
-    button.innerHTML = `<strong>${escapeHtml(recipe.name)}</strong>`;
+    const ingredients = recipe.ingredients || [];
+    const preview = ingredients
+      .slice(0, 2)
+      .map((item) => typeof item === "string" ? item : item.name)
+      .filter(Boolean)
+      .join(" · ");
+    button.innerHTML = `
+      <span class="recipe-card-type">${escapeHtml(getRecipeTypeLabel(recipe.recipeType))}</span>
+      <strong>${escapeHtml(recipe.name)}</strong>
+      <span class="recipe-card-preview">${escapeHtml(preview || "재료를 확인해보세요")}</span>
+      <span class="recipe-card-meta">재료 ${ingredients.length} · 순서 ${(recipe.steps || []).length}</span>
+    `;
     button.addEventListener("click", () => {
       if (state.selectedId === recipe.recipeId) {
         state.selectedId = "";
@@ -630,12 +653,12 @@ function renderDetail() {
   deleteRecipeButton.disabled = !recipe;
   if (!recipe) return;
 
-  detailType.textContent = recipe.recipeType || "Recipe";
+  detailType.textContent = getRecipeTypeLabel(recipe.recipeType);
   detailName.textContent = recipe.name;
   detailDescription.textContent = recipe.description || recipe.notes || "";
   detailYield.textContent = formatYield(recipe);
-  detailUpdated.textContent = recipe.updatedAt || "-";
-  detailFeedback.textContent = recipe.feedbackCount || 0;
+  detailIngredientCount.textContent = recipe.ingredients?.length || 0;
+  detailStepCount.textContent = recipe.steps?.length || 0;
 
   sourceLink.hidden = !recipe.sourceUrl;
   sourceLink.href = normalizeUrl(recipe.sourceUrl) || "#";
@@ -649,21 +672,44 @@ function renderDetail() {
 
 function renderIngredients(items) {
   ingredientList.innerHTML = "";
-  const list = items.length ? items : [{ name: "없음", amount: "", unit: "" }];
-  list.forEach((item) => {
+  const list = items.length ? items : [{ name: "등록된 재료가 없어요", amount: "", unit: "" }];
+  ingredientCount.textContent = `${items.length}개`;
+  list.forEach((item, index) => {
+    const ingredient = typeof item === "string" ? { name: item } : item;
     const li = document.createElement("li");
-    const group = item.groupName ? `[${item.groupName}] ` : "";
-    li.textContent = `${group}${item.name || ""} ${item.amount || ""} ${item.unit || ""}`.trim();
+    li.className = "ingredient-item";
+    const group = ingredient.groupName ? `<span class="ingredient-group">${escapeHtml(ingredient.groupName)}</span>` : "";
+    const notes = ingredient.notes ? `<span class="ingredient-notes">${escapeHtml(ingredient.notes)}</span>` : "";
+    const amount = ingredient.amount ? escapeHtml(ingredient.amount) : "-";
+    const unit = ingredient.unit ? `<small>${escapeHtml(ingredient.unit)}</small>` : "";
+    li.innerHTML = `
+      <span class="ingredient-index">${String(index + 1).padStart(2, "0")}</span>
+      <span class="ingredient-copy">
+        <strong>${escapeHtml(ingredient.name || "")}</strong>
+        ${group}
+        ${notes}
+      </span>
+      <span class="ingredient-amount">${amount}${unit}</span>
+    `;
     ingredientList.append(li);
   });
 }
 
 function renderSteps(items) {
   stepList.innerHTML = "";
-  const list = items.length ? items : [{ instruction: "없음" }];
-  list.forEach((item) => {
+  const list = items.length ? items : [{ instruction: "등록된 투입 순서가 없어요." }];
+  stepCount.textContent = `${items.length}단계`;
+  list.forEach((item, index) => {
     const li = document.createElement("li");
-    li.textContent = item.instruction || item;
+    li.className = "step-item";
+    const instruction = typeof item === "string" ? item : item.instruction;
+    li.innerHTML = `
+      <span class="step-number">${String(index + 1).padStart(2, "0")}</span>
+      <span class="step-copy">
+        <strong>투입 ${index + 1}</strong>
+        <p>${escapeHtml(instruction || "")}</p>
+      </span>
+    `;
     stepList.append(li);
   });
 }
@@ -675,6 +721,10 @@ function render() {
 
 function formatYield(recipe) {
   return `${recipe.baseYield || "-"} ${recipe.yieldUnit || ""}`.trim();
+}
+
+function getRecipeTypeLabel(type) {
+  return Object.values(VIEWS).find((view) => view.type === type)?.title || type || "Recipe";
 }
 
 function escapeHtml(value) {
@@ -760,7 +810,9 @@ mapSearchInput.addEventListener("input", (event) => {
 });
 
 document.querySelector("#backButton").addEventListener("click", () => {
+  state.selectedId = "";
   recipeStage.classList.remove("show-detail");
+  render();
 });
 
 deleteRecipeButton.addEventListener("click", handleDeleteRecipe);
