@@ -3077,3 +3077,48 @@ body {
     flex: initial;
   }
 }
+
+/* First view is the ingredient check; the sequence view starts only after the CTA. */
+body:not(.sequence-mode) .sequence-view,
+body:not(.sequence-mode) .step-card {
+  display: none;
+}
+
+body:not(.sequence-mode) .detail-sections {
+  grid-template-columns: 1fr;
+}
+
+body.sequence-mode .start-cooking-button {
+  display: none;
+}
+
+.start-cooking-button {
+  display: flex;
+  width: 100%;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--ink);
+  border-left: 7px solid var(--accent);
+  border-radius: 0;
+  background: var(--brand);
+  color: var(--ink);
+  padding: 0 18px;
+  text-align: left;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.start-cooking-button:hover {
+  background: var(--accent);
+  transform: translateY(-2px);
+}
+
+.start-cooking-button span {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.start-cooking-button strong {
+  font-size: 1.25rem;
+  line-height: 1;
+}

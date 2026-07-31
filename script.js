@@ -45,6 +45,7 @@ const state = {
   recipes: [],
   selectedId: "",
   sequenceIndex: 0,
+  sequenceStarted: false,
   query: "",
   placeQuery: "",
   placeResults: [],
@@ -77,6 +78,7 @@ const ingredientList = document.querySelector("#ingredientList");
 const stepList = document.querySelector("#stepList");
 const ingredientCount = document.querySelector("#ingredientCount");
 const stepCount = document.querySelector("#stepCount");
+const sequenceView = document.querySelector("#sequenceView");
 const sequenceRecipeName = document.querySelector("#sequenceRecipeName");
 const sequenceProgress = document.querySelector("#sequenceProgress");
 const sequenceStage = document.querySelector("#sequenceStage");
@@ -89,6 +91,7 @@ const sequenceMeta = document.querySelector("#sequenceMeta");
 const sequenceDots = document.querySelector("#sequenceDots");
 const sequencePrevButton = document.querySelector("#sequencePrevButton");
 const sequenceNextButton = document.querySelector("#sequenceNextButton");
+const startCookingButton = document.querySelector("#startCookingButton");
 const latestFeedbackCard = document.querySelector("#latestFeedbackCard");
 const latestFeedback = document.querySelector("#latestFeedback");
 const placesMap = document.querySelector("#placesMap");
@@ -108,6 +111,7 @@ async function loadRecipes() {
   const current = VIEWS[state.view];
   state.selectedId = "";
   state.sequenceIndex = 0;
+  state.sequenceStarted = false;
   recipeStage.classList.remove("show-detail");
   setSequenceMode(false);
   setStatus("불러오는 중", 0);
@@ -125,7 +129,7 @@ async function loadRecipes() {
     state.selectedId = state.recipes[0]?.recipeId || "";
     const showDetail = Boolean(state.selectedId) && window.matchMedia("(max-width: 760px)").matches;
     recipeStage.classList.toggle("show-detail", showDetail);
-    setSequenceMode(showDetail);
+    setSequenceMode(false);
     setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
   } catch {
     state.recipes = [];
@@ -652,13 +656,15 @@ function renderList() {
       if (state.selectedId === recipe.recipeId) {
         state.selectedId = "";
         state.sequenceIndex = 0;
+        state.sequenceStarted = false;
         recipeStage.classList.remove("show-detail");
         setSequenceMode(false);
       } else {
         state.selectedId = recipe.recipeId;
         state.sequenceIndex = 0;
+        state.sequenceStarted = false;
         recipeStage.classList.add("show-detail");
-        setSequenceMode(true);
+        setSequenceMode(false);
       }
       render();
     });
@@ -672,6 +678,7 @@ function renderDetail() {
   recipeDetail.hidden = !recipe;
   latestFeedbackCard.hidden = !recipe?.latestFeedback;
   deleteRecipeButton.disabled = !recipe;
+  startCookingButton.disabled = !recipe;
   if (!recipe) return;
 
   detailType.textContent = getRecipeTypeLabel(recipe.recipeType);
@@ -932,6 +939,7 @@ searchInput.addEventListener("input", (event) => {
   state.query = event.target.value;
   state.selectedId = "";
   state.sequenceIndex = 0;
+  state.sequenceStarted = false;
   recipeStage.classList.remove("show-detail");
   setSequenceMode(false);
   render();
@@ -946,10 +954,13 @@ mapSearchInput.addEventListener("input", (event) => {
 document.querySelector("#backButton").addEventListener("click", () => {
   state.selectedId = "";
   state.sequenceIndex = 0;
+  state.sequenceStarted = false;
   recipeStage.classList.remove("show-detail");
   setSequenceMode(false);
   render();
 });
+
+startCookingButton.addEventListener("click", startCooking);
 
 sequencePrevButton.addEventListener("click", () => moveSequence(-1));
 sequenceNextButton.addEventListener("click", () => moveSequence(1));
@@ -990,6 +1001,16 @@ function moveSequence(direction) {
   renderSequence(recipe);
 }
 
+function startCooking() {
+  const recipe = getSelectedRecipe();
+  if (!recipe) return;
+  state.sequenceIndex = 0;
+  state.sequenceStarted = true;
+  setSequenceMode(true);
+  renderSequence(recipe);
+  sequenceView.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function closeRecipeForm() {
   recipeModal.hidden = true;
 }
@@ -1006,6 +1027,7 @@ async function handleDeleteRecipe() {
     state.recipes = state.recipes.filter((item) => item.recipeId !== recipe.recipeId);
     state.selectedId = "";
     state.sequenceIndex = 0;
+    state.sequenceStarted = false;
     recipeStage.classList.remove("show-detail");
     setSequenceMode(false);
     setStatus(state.recipes.length ? `${state.recipes.length}개` : "없음", state.recipes.length);
